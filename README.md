@@ -75,7 +75,7 @@
 
 ---
 
-![image.png](attachment:9008f970-6adb-432f-b786-cb60b577fb5a:image.png)
+<img width="60%" alt="image" src="https://github.com/user-attachments/assets/9d7076ae-5259-441c-bb3c-8a21a6d6bbb8" />
 
 - User는 별도의 테이블로 관리하지 않고, 파라미터로 전달되는 `userId`를 기준으로 처리했습니다.
 - PK는 Auto Increment?
