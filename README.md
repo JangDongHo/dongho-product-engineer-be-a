@@ -1,3 +1,7 @@
+# 과제 A — 수강 신청 시스템
+
+## 🔷 프로젝트 개요
+
 ## 🔷 요구사항 해석 및 가정
 
 ---
@@ -69,7 +73,19 @@
 - ORM: JPA
 - Database: MySQL
 - Build Tool: Gradle
-- Test:
+- Test: JUnit 5, Spring Boot Test, H2(테스트 전용 in-memory)
+
+## 🔷 테스트 실행
+
+---
+
+- **전체 테스트** (프로젝트 루트):
+
+  ```bash
+  ./gradlew test
+  ```
+
+- `src/test` 는 `application-test.yml` 에 따라 H2 인메모리 DB를 쓰므로, **MySQL을 띄우지 않아도** 테스트를 실행할 수 있습니다.
 
 ## 🔷 데이터 모델
 
@@ -86,13 +102,13 @@
 
 ### 강의(Class) API
 
-| Method  | Endpoint                    | 설명                                 | 요청 Body / Query                                                   | 응답 코드   |
-| ------- | --------------------------- | ------------------------------------ | ------------------------------------------------------------------- | ----------- |
+| Method  | Endpoint                    | 설명                                 | 요청 Body / Query                                                                                     | 응답 코드   |
+| ------- | --------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------- | ----------- |
 | `POST`  | `/classes`                  | 강의 등록                            | `title`, `description`, `price`, `capacity`, `startDate`, `endDate` (`price` 는 KRW **원** 단위 정수) | 201 Created |
-| `PATCH` | `/classes/{id}/status`      | 강의 상태 전이                       | `status` (`DRAFT` \| `OPEN` \| `CLOSED`)                            | 200 OK      |
-| `GET`   | `/classes`                  | 강의 목록 조회                       | Query: `status` (선택)                                              | 200 OK      |
-| `GET`   | `/classes/{id}`             | 강의 상세 조회                       | —                                                                   | 200 OK      |
-| `GET`   | `/classes/{id}/enrollments` | 강의별 수강생 목록 (크리에이터 전용) | Query: `creatorId`                                                  | 200 OK      |
+| `PATCH` | `/classes/{id}/status`      | 강의 상태 전이                       | `status` (`DRAFT` \| `OPEN` \| `CLOSED`)                                                              | 200 OK      |
+| `GET`   | `/classes`                  | 강의 목록 조회                       | Query: `status` (선택)                                                                                | 200 OK      |
+| `GET`   | `/classes/{id}`             | 강의 상세 조회                       | —                                                                                                     | 200 OK      |
+| `GET`   | `/classes/{id}/enrollments` | 강의별 수강생 목록 (크리에이터 전용) | Query: `creatorId`                                                                                    | 200 OK      |
 
 #### 강의 상태 전이 규칙
 

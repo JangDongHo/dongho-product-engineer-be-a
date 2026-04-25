@@ -2,7 +2,15 @@ package io.github.jangdongho.productengineer.presentation.lecture;
 
 import io.github.jangdongho.productengineer.business.lecture.LectureService;
 import io.github.jangdongho.productengineer.common.api.ApiResponse;
+import io.github.jangdongho.productengineer.common.api.ErrorResponse;
 import io.github.jangdongho.productengineer.persistence.lecture.ClassStatus;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -24,23 +32,118 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/classes")
 @RequiredArgsConstructor
 @Validated
+@Tag(name = "Classes", description = "강의 생성, 조회, 상태 변경 API")
 public class ClassController {
 
 	private final LectureService lectureService;
 
+	@Operation(summary = "강의 목록 조회", description = "강의 목록을 ID 오름차순으로 조회합니다. status를 전달하면 해당 모집 상태로 필터링합니다.")
+	@ApiResponses({
+			@io.swagger.v3.oas.annotations.responses.ApiResponse(
+					responseCode = "200",
+					description = "강의 목록 조회 성공",
+					content = @Content(
+							mediaType = "application/json",
+							schema = @Schema(implementation = ApiResponse.class),
+							examples = @ExampleObject(value = """
+									{
+									  "success": true,
+									  "data": [
+									    {
+									      "id": 1,
+									      "creatorId": 10,
+									      "title": "Spring Boot 실전 클래스",
+									      "status": "OPEN",
+									      "price": 10000,
+									      "capacity": 30,
+									      "startDate": "2026-05-01T10:00:00",
+									      "endDate": "2026-05-30T18:00:00"
+									    }
+									  ]
+									}
+									""")
+					)
+			),
+			@io.swagger.v3.oas.annotations.responses.ApiResponse(
+					responseCode = "400",
+					description = "잘못된 status 값",
+					content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
+			)
+	})
 	@GetMapping
 	public ResponseEntity<ApiResponse<List<ClassListItemResponse>>> list(
+			@Parameter(description = "강의 모집 상태 필터", example = "OPEN")
 			@RequestParam(name = "status", required = false) ClassStatus status) {
 		return ResponseEntity.ok(ApiResponse.success(lectureService.listClasses(status)));
 	}
 
+	@Operation(summary = "강의 상세 조회", description = "강의 ID로 상세 정보를 조회합니다.")
+	@ApiResponses({
+			@io.swagger.v3.oas.annotations.responses.ApiResponse(
+					responseCode = "200",
+					description = "강의 상세 조회 성공",
+					content = @Content(
+							mediaType = "application/json",
+							schema = @Schema(implementation = ApiResponse.class),
+							examples = @ExampleObject(value = """
+									{
+									  "success": true,
+									  "data": {
+									    "id": 1,
+									    "creatorId": 10,
+									    "title": "Spring Boot 실전 클래스",
+									    "description": "실무에서 사용하는 Spring Boot API 개발을 다룹니다.",
+									    "status": "OPEN",
+									    "price": 10000,
+									    "capacity": 30,
+									    "currentEnrollment": 4,
+									    "startDate": "2026-05-01T10:00:00",
+									    "endDate": "2026-05-30T18:00:00"
+									  }
+									}
+									""")
+					)
+			),
+			@io.swagger.v3.oas.annotations.responses.ApiResponse(
+					responseCode = "404",
+					description = "강의를 찾을 수 없음",
+					content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
+			)
+	})
 	@GetMapping("/{id}")
-	public ResponseEntity<ApiResponse<ClassDetailResponse>> getById(@PathVariable long id) {
+	public ResponseEntity<ApiResponse<ClassDetailResponse>> getById(
+			@Parameter(description = "강의 ID", example = "1")
+			@PathVariable long id) {
 		return ResponseEntity.ok(ApiResponse.success(lectureService.getClassById(id)));
 	}
 
+	@Operation(summary = "강의 생성", description = "크리에이터 ID와 강의 정보를 받아 강의를 DRAFT 상태로 생성합니다.")
+	@ApiResponses({
+			@io.swagger.v3.oas.annotations.responses.ApiResponse(
+					responseCode = "201",
+					description = "강의 생성 성공",
+					content = @Content(
+							mediaType = "application/json",
+							schema = @Schema(implementation = ApiResponse.class),
+							examples = @ExampleObject(value = """
+									{
+									  "success": true,
+									  "data": {
+									    "id": 1
+									  }
+									}
+									""")
+					)
+			),
+			@io.swagger.v3.oas.annotations.responses.ApiResponse(
+					responseCode = "400",
+					description = "요청 값 검증 실패",
+					content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
+			)
+	})
 	@PostMapping
 	public ResponseEntity<ApiResponse<ClassCreatedResponse>> create(
+			@Parameter(description = "크리에이터 ID", example = "10", required = true)
 			@RequestParam("creatorId") @NotNull @Positive Long creatorId,
 			@Valid @RequestBody CreateClassRequest request) {
 		ClassCreatedResponse response = lectureService.create(creatorId, request);
@@ -49,8 +152,38 @@ public class ClassController {
 				.body(ApiResponse.success(response));
 	}
 
+	@Operation(summary = "강의 상태 변경", description = "강의 상태를 변경합니다. 허용 전이는 DRAFT -> OPEN -> CLOSED 입니다.")
+	@ApiResponses({
+			@io.swagger.v3.oas.annotations.responses.ApiResponse(
+					responseCode = "200",
+					description = "강의 상태 변경 성공",
+					content = @Content(
+							mediaType = "application/json",
+							schema = @Schema(implementation = ApiResponse.class),
+							examples = @ExampleObject(value = """
+									{
+									  "success": true,
+									  "data": {
+									    "status": "OPEN"
+									  }
+									}
+									""")
+					)
+			),
+			@io.swagger.v3.oas.annotations.responses.ApiResponse(
+					responseCode = "400",
+					description = "요청 값 검증 실패 또는 허용되지 않는 상태 전이",
+					content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
+			),
+			@io.swagger.v3.oas.annotations.responses.ApiResponse(
+					responseCode = "404",
+					description = "강의를 찾을 수 없음",
+					content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
+			)
+	})
 	@PatchMapping("/{id}/status")
 	public ResponseEntity<ApiResponse<ClassStatusResponse>> updateStatus(
+			@Parameter(description = "강의 ID", example = "1")
 			@PathVariable long id,
 			@Valid @RequestBody UpdateClassStatusRequest request) {
 		ClassStatusResponse response = lectureService.updateStatus(id, request.status());
