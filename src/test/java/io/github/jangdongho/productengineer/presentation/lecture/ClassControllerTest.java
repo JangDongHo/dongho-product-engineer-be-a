@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -15,6 +16,8 @@ import io.github.jangdongho.productengineer.common.exception.BusinessException;
 import io.github.jangdongho.productengineer.common.exception.ErrorCode;
 import io.github.jangdongho.productengineer.common.exception.GlobalExceptionHandler;
 import io.github.jangdongho.productengineer.persistence.lecture.ClassStatus;
+import java.time.LocalDateTime;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +38,59 @@ class ClassControllerTest {
 
 	@Autowired
 	private MockMvc mockMvc;
+
+	@Test
+	@DisplayName("GET /classes 는 전체 목록을 반환한다")
+	void getList_all() throws Exception {
+		ClassListItemResponse item = new ClassListItemResponse(
+				1L, 10L, "A", ClassStatus.DRAFT, 5_000L, 20,
+				LocalDateTime.parse("2026-05-01T10:00:00"), LocalDateTime.parse("2026-05-30T18:00:00"));
+		when(lectureService.listClasses(null)).thenReturn(List.of(item));
+
+		mockMvc.perform(get("/classes"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.success", is(true)))
+				.andExpect(jsonPath("$.data[0].id", is(1)))
+				.andExpect(jsonPath("$.data[0].title", is("A")));
+	}
+
+	@Test
+	@DisplayName("GET /classes?status=OPEN 는 필터된 목록을 반환한다")
+	void getList_withStatus() throws Exception {
+		ClassListItemResponse item = new ClassListItemResponse(
+				2L, 1L, "B", ClassStatus.OPEN, 0L, 5,
+				LocalDateTime.parse("2026-06-01T09:00:00"), LocalDateTime.parse("2026-06-20T12:00:00"));
+		when(lectureService.listClasses(ClassStatus.OPEN)).thenReturn(List.of(item));
+
+		mockMvc.perform(get("/classes").param("status", "OPEN"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data[0].status", is("OPEN")));
+	}
+
+	@Test
+	@DisplayName("GET /classes/{id} 는 상세와 currentEnrollment 를 반환한다")
+	void getById_returnsDetail() throws Exception {
+		ClassDetailResponse body = new ClassDetailResponse(
+				1L, 3L, "C", "desc", ClassStatus.OPEN, 9_000L, 10, 4,
+				LocalDateTime.parse("2026-07-01T10:00:00"), LocalDateTime.parse("2026-07-31T18:00:00"));
+		when(lectureService.getClassById(1L)).thenReturn(body);
+
+		mockMvc.perform(get("/classes/1"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.currentEnrollment", is(4)))
+				.andExpect(jsonPath("$.data.description", is("desc")));
+	}
+
+	@Test
+	@DisplayName("GET /classes/{id} 는 강의 없을 때 404 를 반환한다")
+	void getById_notFound_returns404() throws Exception {
+		when(lectureService.getClassById(99L))
+				.thenThrow(new BusinessException(ErrorCode.NOT_FOUND));
+
+		mockMvc.perform(get("/classes/99"))
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.code", is(ErrorCode.NOT_FOUND.getCode())));
+	}
 
 	@Test
 	@DisplayName("POST /classes 는 유효한 요청 시 201 Created 와 id 를 반환한다")
