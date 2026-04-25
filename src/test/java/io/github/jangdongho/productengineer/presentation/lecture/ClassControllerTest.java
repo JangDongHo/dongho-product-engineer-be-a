@@ -140,6 +140,27 @@ class ClassControllerTest {
 	}
 
 	@Test
+	@DisplayName("POST /classes 는 creatorId 가 음수면 400 을 반환한다")
+	void create_invalidCreatorId_returns400() throws Exception {
+		String body = """
+				{
+					"title": "Test class",
+					"description": "Description",
+					"price": 10000,
+					"capacity": 30,
+					"startDate": "2026-05-01T10:00:00",
+					"endDate": "2026-05-30T18:00:00"
+				}
+				""";
+		mockMvc.perform(post("/classes")
+						.param("creatorId", "-1")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(body))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code", is(ErrorCode.VALIDATION_ERROR.getCode())));
+	}
+
+	@Test
 	@DisplayName("PATCH /classes/{id}/status 는 성공 시 200 과 status 를 반환한다")
 	void patchStatus_returns200() throws Exception {
 		when(lectureService.updateStatus(eq(1L), eq(ClassStatus.OPEN)))

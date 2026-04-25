@@ -2,6 +2,7 @@ package io.github.jangdongho.productengineer.common.exception;
 
 import java.util.stream.Collectors;
 
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -42,6 +43,19 @@ public class GlobalExceptionHandler {
 	public ResponseEntity<ErrorResponse> handleMethodArgumentNotValid(MethodArgumentNotValidException e) {
 		String message = e.getBindingResult().getFieldErrors().stream()
 				.map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
+				.collect(Collectors.joining(", "));
+		if (message.isEmpty()) {
+			message = ErrorCode.VALIDATION_ERROR.getDefaultMessage();
+		}
+		ErrorCode errorCode = ErrorCode.VALIDATION_ERROR;
+		ErrorResponse body = new ErrorResponse(errorCode.getCode(), message);
+		return ResponseEntity.status(errorCode.getStatus()).body(body);
+	}
+
+	@ExceptionHandler(ConstraintViolationException.class)
+	public ResponseEntity<ErrorResponse> handleConstraintViolation(ConstraintViolationException e) {
+		String message = e.getConstraintViolations().stream()
+				.map(v -> v.getPropertyPath() + ": " + v.getMessage())
 				.collect(Collectors.joining(", "));
 		if (message.isEmpty()) {
 			message = ErrorCode.VALIDATION_ERROR.getDefaultMessage();
