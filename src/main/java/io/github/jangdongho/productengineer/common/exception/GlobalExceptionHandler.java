@@ -3,6 +3,7 @@ package io.github.jangdongho.productengineer.common.exception;
 import java.util.stream.Collectors;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -26,6 +27,13 @@ public class GlobalExceptionHandler {
 	public ResponseEntity<ErrorResponse> handleSystemException(SystemException e) {
 		log.error("SystemException", e);
 		ErrorCode errorCode = ErrorCode.INTERNAL_ERROR;
+		ErrorResponse body = new ErrorResponse(errorCode.getCode(), errorCode.getDefaultMessage());
+		return ResponseEntity.status(errorCode.getStatus()).body(body);
+	}
+
+	@ExceptionHandler(HttpMessageNotReadableException.class)
+	public ResponseEntity<ErrorResponse> handleHttpMessageNotReadable(HttpMessageNotReadableException e) {
+		ErrorCode errorCode = ErrorCode.VALIDATION_ERROR;
 		ErrorResponse body = new ErrorResponse(errorCode.getCode(), errorCode.getDefaultMessage());
 		return ResponseEntity.status(errorCode.getStatus()).body(body);
 	}
