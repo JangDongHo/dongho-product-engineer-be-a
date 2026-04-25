@@ -22,21 +22,21 @@
 
 ### Story 1-1. Spring Boot 프로젝트 구성
 
-- [ ] **Task** `build.gradle` 의존성 추가
+- [x] **Task** `build.gradle` 의존성 추가
   - Spring Web, Spring Data JPA, MySQL Driver, Validation, Lombok
-- [ ] **Task** `application.yml` 환경 설정
+- [x] **Task** `application.yml` 환경 설정
   - DB 연결, JPA DDL 설정, 로깅 레벨
-- [ ] **Task** 레이어드 패키지 구조 설계
+- [x] **Task** 레이어드 패키지 구조 설계
   - Presentation, Business, Persistence 패키지 구조 설계
 
 ### Story 1-2. Docker Compose 환경 구성
 
-- [ ] **Task** `docker-compose.yml` 작성
+- [x] **Task** `docker-compose.yml` 작성
   - MySQL 컨테이너 설정 (이미지, 포트, 환경 변수)
   - 볼륨 마운트 설정 (데이터 영속성)
-- [ ] **Task** `application.yml` DB 연결 정보 연동
+- [x] **Task** `application.yml` DB 연결 정보 연동
   - `docker-compose.yml` 환경 변수와 일치하도록 설정
-- [ ] **Task** 로컬 실행 검증
+- [x] **Task** 로컬 실행 검증
   - `docker compose up` 후 애플리케이션 정상 기동 확인
 
 ### Story 1-3. 공통 컴포넌트 구성
