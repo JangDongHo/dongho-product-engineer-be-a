@@ -1,13 +1,10 @@
 package io.github.jangdongho.productengineer.persistence.lecture;
 
+import io.github.jangdongho.productengineer.persistence.common.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
@@ -15,9 +12,6 @@ import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Getter
 @Setter
@@ -27,12 +21,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 		name = "classes",
 		indexes = @Index(name = "ix_classes_status_id", columnList = "status,id")
 )
-@EntityListeners(AuditingEntityListener.class)
-public class Lecture {
-
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+public class Lecture extends BaseEntity {
 
 	@Column(name = "creator_id", nullable = false)
 	private Long creatorId;
@@ -62,12 +51,4 @@ public class Lecture {
 
 	@Column(name = "current_enrollment", nullable = false)
 	private int currentEnrollment = 0;
-
-	@CreatedDate
-	@Column(name = "created_at", nullable = false, updatable = false)
-	private LocalDateTime createdAt;
-
-	@LastModifiedDate
-	@Column(name = "updated_at", nullable = false)
-	private LocalDateTime updatedAt;
 }
