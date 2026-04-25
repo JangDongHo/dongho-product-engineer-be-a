@@ -88,7 +88,7 @@
 
 | Method  | Endpoint                    | 설명                                 | 요청 Body / Query                                                   | 응답 코드   |
 | ------- | --------------------------- | ------------------------------------ | ------------------------------------------------------------------- | ----------- |
-| `POST`  | `/classes`                  | 강의 등록                            | `title`, `description`, `price`, `capacity`, `startDate`, `endDate` | 201 Created |
+| `POST`  | `/classes`                  | 강의 등록                            | `title`, `description`, `price`, `capacity`, `startDate`, `endDate` (`price` 는 KRW **원** 단위 정수) | 201 Created |
 | `PATCH` | `/classes/{id}/status`      | 강의 상태 전이                       | `status` (`DRAFT` \| `OPEN` \| `CLOSED`)                            | 200 OK      |
 | `GET`   | `/classes`                  | 강의 목록 조회                       | Query: `status` (선택)                                              | 200 OK      |
 | `GET`   | `/classes/{id}`             | 강의 상세 조회                       | —                                                                   | 200 OK      |

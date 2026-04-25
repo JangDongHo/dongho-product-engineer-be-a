@@ -41,13 +41,13 @@
 
 ### Story 1-3. 공통 컴포넌트 구성
 
-- [ ] **Task** 커스텀 예외 클래스 정의
+- [x] **Task** 커스텀 예외 클래스 정의
   - `BusinessException`, `ErrorCode` enum
   - 비즈니스 예외 vs 시스템 예외 분리
-- [ ] **Task** 글로벌 예외 핸들러 구현
+- [x] **Task** 글로벌 예외 핸들러 구현
   - `@RestControllerAdvice` + `@ExceptionHandler`
   - 에러 응답 포맷 통일 (`code`, `message`)
-- [ ] **Task** 공통 응답 포맷 정의 (선택)
+- [x] **Task** 공통 응답 포맷 정의 (선택)
   - `ApiResponse<T>` 래퍼 클래스
 
 ---
@@ -60,18 +60,19 @@
 
 ### Story 2-1. 강의 도메인 모델 설계
 
-- [ ] **Task** `Class` 엔티티 설계
-  - 필드: `id`, `creatorId`, `title`, `description`, `price`, `capacity`, `startDate`, `endDate`, `status`
-  - PK 전략 결정 (Auto Increment vs UUID)
-- [ ] **Task** `ClassStatus` Enum 정의
+- [x] **Task** `Class` 엔티티 설계
+  - 필드: `id`, `creatorId`, `title`, `description`, `price`, `capacity`, `startDate`, `endDate`, `status`, `currentEnrollment`, `createdAt`, `updatedAt`
+  - `price`: **KRW 원 단위 정수**(`long` 등)만 사용, **소수(소수점 금액)는 지원하지 않음**
+  - PK 전략: Auto Increment
+- [x] **Task** `ClassStatus` Enum 정의
   - `DRAFT`, `OPEN`, `CLOSED`
-- [ ] **Task** 인덱스 설계
-  - `status` 필터 조회를 위한 인덱스 추가 여부 결정
+- [x] **Task** 인덱스 설계
+  - 페이지네이션을 고려한 `(status, id)` 복합 인덱스 추가
 
 ### Story 2-2. 강의 등록 API
 
 - [ ] **Task** `POST /classes` API 구현
-  - Request Body: `title`, `description`, `price`, `capacity`, `startDate`, `endDate`
+  - Request Body: `title`, `description`, `price`, `capacity`, `startDate`, `endDate` (`price` 는 **원 단위 정수**, JSON 숫자)
   - 초기 상태: `DRAFT`
 - [ ] **Task** 입력값 유효성 검증
   - `@NotBlank`, `@Positive`, `@NotNull` 등 Bean Validation 적용
