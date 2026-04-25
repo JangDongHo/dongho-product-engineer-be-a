@@ -80,6 +80,65 @@
 - User는 별도의 테이블로 관리하지 않고, 파라미터로 전달되는 `userId`를 기준으로 처리했습니다.
 - PK는 Auto Increment?
 
+## 🔷 API 명세
+
+---
+
+### 강의(Class) API
+
+| Method  | Endpoint                    | 설명                                 | 요청 Body / Query                                                   | 응답 코드   |
+| ------- | --------------------------- | ------------------------------------ | ------------------------------------------------------------------- | ----------- |
+| `POST`  | `/classes`                  | 강의 등록                            | `title`, `description`, `price`, `capacity`, `startDate`, `endDate` | 201 Created |
+| `PATCH` | `/classes/{id}/status`      | 강의 상태 전이                       | `status` (`DRAFT` \| `OPEN` \| `CLOSED`)                            | 200 OK      |
+| `GET`   | `/classes`                  | 강의 목록 조회                       | Query: `status` (선택)                                              | 200 OK      |
+| `GET`   | `/classes/{id}`             | 강의 상세 조회                       | —                                                                   | 200 OK      |
+| `GET`   | `/classes/{id}/enrollments` | 강의별 수강생 목록 (크리에이터 전용) | Query: `creatorId`                                                  | 200 OK      |
+
+#### 강의 상태 전이 규칙
+
+```
+DRAFT → OPEN → CLOSED
+```
+
+- `DRAFT`: 신청 불가 (초안)
+- `OPEN`: 신청 가능 (모집 중)
+- `CLOSED`: 신청 불가 (모집 마감)
+
+---
+
+### 수강 신청(Enrollment) API
+
+| Method  | Endpoint                    | 설명                  | 요청 Body / Query               | 응답 코드   |
+| ------- | --------------------------- | --------------------- | ------------------------------- | ----------- |
+| `POST`  | `/enrollments`              | 수강 신청             | `userId`, `classId`             | 201 Created |
+| `PATCH` | `/enrollments/{id}/confirm` | 결제 확정 (수강 확정) | —                               | 200 OK      |
+| `PATCH` | `/enrollments/{id}/cancel`  | 수강 취소             | —                               | 200 OK      |
+| `GET`   | `/enrollments`              | 내 수강 신청 목록     | Query: `userId`, `page`, `size` | 200 OK      |
+
+#### 수강 신청 상태 전이 규칙
+
+```
+PENDING → CONFIRMED → CANCELLED
+PENDING → CANCELLED
+```
+
+- `PENDING`: 신청 완료, 결제 대기
+- `CONFIRMED`: 결제 완료, 수강 확정
+- `CANCELLED`: 취소됨
+
+---
+
+### 에러 응답
+
+| HTTP 코드         | 상황                                                           |
+| ----------------- | -------------------------------------------------------------- |
+| `400 Bad Request` | 필수 항목 누락 / 허용되지 않는 상태 전이 / 취소 가능 기간 초과 |
+| `403 Forbidden`   | 본인 강의가 아닌 수강생 목록 조회 시도                         |
+| `404 Not Found`   | 존재하지 않는 강의 또는 신청 ID                                |
+| `409 Conflict`    | 정원 초과 / 동일 강의 중복 신청                                |
+
+---
+
 ## 🔷 AI 활용 범위
 
 ---
@@ -87,7 +146,9 @@
 ### ✅ AI를 적극적으로 활용한 부분
 
 - 생소한 개념 비교 학습 (Node.js vs Java)
-- 사용자 시나리오 작성
+- 명세 문서화
+  - 사용자 시나리오 작성
+  - Epic-Story-Task 분해
 
 ### ❌ AI를 덜 활용한 부분
 
