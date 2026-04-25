@@ -5,13 +5,16 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import io.github.jangdongho.productengineer.business.lecture.LectureService;
+import io.github.jangdongho.productengineer.common.exception.BusinessException;
 import io.github.jangdongho.productengineer.common.exception.ErrorCode;
 import io.github.jangdongho.productengineer.common.exception.GlobalExceptionHandler;
+import io.github.jangdongho.productengineer.persistence.lecture.ClassStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -78,5 +81,55 @@ class ClassControllerTest {
 						.content(body))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.code", is(ErrorCode.VALIDATION_ERROR.getCode())));
+	}
+
+	@Test
+	@DisplayName("PATCH /classes/{id}/status 는 성공 시 200 과 status 를 반환한다")
+	void patchStatus_returns200() throws Exception {
+		when(lectureService.updateStatus(eq(1L), eq(ClassStatus.OPEN)))
+				.thenReturn(new ClassStatusResponse(ClassStatus.OPEN));
+
+		String body = """
+				{ "status": "OPEN" }
+				""";
+		mockMvc.perform(patch("/classes/1/status")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(body))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.success", is(true)))
+				.andExpect(jsonPath("$.data.status", is("OPEN")));
+		verify(lectureService).updateStatus(1L, ClassStatus.OPEN);
+	}
+
+	@Test
+	@DisplayName("PATCH /classes/{id}/status 는 서비스가 전이 거부 시 400 을 반환한다")
+	void patchStatus_invalidTransition_returns400() throws Exception {
+		when(lectureService.updateStatus(eq(1L), eq(ClassStatus.CLOSED)))
+				.thenThrow(new BusinessException(ErrorCode.VALIDATION_ERROR, "허용되지 않는 상태 전이입니다."));
+
+		String body = """
+				{ "status": "CLOSED" }
+				""";
+		mockMvc.perform(patch("/classes/1/status")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(body))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code", is(ErrorCode.VALIDATION_ERROR.getCode())));
+	}
+
+	@Test
+	@DisplayName("PATCH /classes/{id}/status 는 강의 없을 때 404 를 반환한다")
+	void patchStatus_notFound_returns404() throws Exception {
+		when(lectureService.updateStatus(eq(1L), eq(ClassStatus.OPEN)))
+				.thenThrow(new BusinessException(ErrorCode.NOT_FOUND));
+
+		String body = """
+				{ "status": "OPEN" }
+				""";
+		mockMvc.perform(patch("/classes/1/status")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(body))
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.code", is(ErrorCode.NOT_FOUND.getCode())));
 	}
 }
