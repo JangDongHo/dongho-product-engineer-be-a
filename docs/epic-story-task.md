@@ -29,7 +29,17 @@
 - [ ] **Task** 레이어드 패키지 구조 설계
   - Presentation, Business, Persistence 패키지 구조 설계
 
-### Story 1-2. 공통 컴포넌트 구성
+### Story 1-2. Docker Compose 환경 구성
+
+- [ ] **Task** `docker-compose.yml` 작성
+  - MySQL 컨테이너 설정 (이미지, 포트, 환경 변수)
+  - 볼륨 마운트 설정 (데이터 영속성)
+- [ ] **Task** `application.yml` DB 연결 정보 연동
+  - `docker-compose.yml` 환경 변수와 일치하도록 설정
+- [ ] **Task** 로컬 실행 검증
+  - `docker compose up` 후 애플리케이션 정상 기동 확인
+
+### Story 1-3. 공통 컴포넌트 구성
 
 - [ ] **Task** 커스텀 예외 클래스 정의
   - `BusinessException`, `ErrorCode` enum
