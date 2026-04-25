@@ -1,10 +1,13 @@
 package io.github.jangdongho.productengineer.presentation.lecture;
 
 import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
+
 import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -16,6 +19,7 @@ import lombok.Setter;
 public class CreateClassRequest {
 
 	@NotBlank
+	@Size(max = 255)
 	private String title;
 
 	@NotBlank
@@ -27,6 +31,7 @@ public class CreateClassRequest {
 
 	@NotNull
 	@Min(1)
+	@Max(10_000)
 	private Integer capacity;
 
 	@NotNull
