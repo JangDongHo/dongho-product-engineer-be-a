@@ -32,13 +32,17 @@ public class EnrollmentService {
 
 	@Transactional(readOnly = true)
 	public List<EnrollmentListItemResponse> listByUserId(long userId) {
-		List<Enrollment> enrollments = enrollmentRepository.findByUserIdOrderByIdAsc(userId);
+		List<Enrollment> enrollments = enrollmentRepository.findByUserIdOrderByCreatedAtDescIdDesc(userId);
+
 		if (enrollments.isEmpty()) {
 			return List.of();
 		}
+
 		List<Long> classIds = enrollments.stream().map(Enrollment::getClassId).distinct().toList();
+
 		Map<Long, Lecture> lectureById = lectureRepository.findAllById(classIds).stream()
 				.collect(Collectors.toMap(Lecture::getId, lecture -> lecture));
+			
 		return enrollments.stream()
 				.map(enrollment -> {
 					Lecture lecture = lectureById.get(enrollment.getClassId());
