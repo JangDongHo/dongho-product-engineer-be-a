@@ -8,8 +8,10 @@ import io.github.jangdongho.productengineer.persistence.enrollment.EnrollmentSta
 import io.github.jangdongho.productengineer.persistence.lecture.ClassStatus;
 import io.github.jangdongho.productengineer.persistence.lecture.Lecture;
 import io.github.jangdongho.productengineer.persistence.lecture.LectureRepository;
+import io.github.jangdongho.productengineer.presentation.enrollment.EnrollmentCancelledResponse;
 import io.github.jangdongho.productengineer.presentation.enrollment.EnrollmentConfirmedResponse;
 import io.github.jangdongho.productengineer.presentation.enrollment.EnrollmentCreatedResponse;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,6 +23,7 @@ public class EnrollmentService {
 
 	private final LectureRepository lectureRepository;
 	private final EnrollmentRepository enrollmentRepository;
+	private final Clock clock;
 
 	@Transactional
 	public EnrollmentCreatedResponse enroll(long userId, long classId) {
@@ -61,9 +64,43 @@ public class EnrollmentService {
 		}
 
 		enrollment.setStatus(EnrollmentStatus.CONFIRMED);
-		enrollment.setConfirmedAt(LocalDateTime.now());
+		enrollment.setConfirmedAt(LocalDateTime.now(clock));
 		enrollmentRepository.save(enrollment);
 
 		return new EnrollmentConfirmedResponse(enrollment.getId(), enrollment.getStatus(), enrollment.getConfirmedAt());
+	}
+
+	@Transactional
+	public EnrollmentCancelledResponse cancel(long enrollmentId) {
+		Enrollment enrollment = enrollmentRepository.findById(enrollmentId)
+				.orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+
+		if (enrollment.getStatus() == EnrollmentStatus.CANCELLED) {
+			throw new BusinessException(ErrorCode.VALIDATION_ERROR, "이미 취소된 수강 신청입니다.");
+		}
+
+		LocalDateTime now = LocalDateTime.now(clock);
+		if (enrollment.getStatus() == EnrollmentStatus.CONFIRMED) {
+			LocalDateTime confirmedAt = enrollment.getConfirmedAt();
+			if (confirmedAt == null) {
+				throw new BusinessException(ErrorCode.VALIDATION_ERROR, "확정 시각이 없어 취소할 수 없습니다.");
+			}
+			LocalDateTime deadline = confirmedAt.plusDays(7);
+			if (now.isAfter(deadline)) {
+				throw new BusinessException(ErrorCode.VALIDATION_ERROR, "결제 확정 후 7일이 지나 취소할 수 없습니다.");
+			}
+		} else if (enrollment.getStatus() != EnrollmentStatus.PENDING) {
+			throw new BusinessException(ErrorCode.VALIDATION_ERROR, "취소할 수 없는 수강 신청 상태입니다.");
+		}
+
+		Lecture lecture = lectureRepository.findById(enrollment.getClassId())
+				.orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+		lecture.setCurrentEnrollment(lecture.getCurrentEnrollment() - 1);
+		lectureRepository.save(lecture);
+
+		enrollment.setStatus(EnrollmentStatus.CANCELLED);
+		enrollmentRepository.save(enrollment);
+
+		return new EnrollmentCancelledResponse(enrollment.getId(), enrollment.getStatus());
 	}
 }

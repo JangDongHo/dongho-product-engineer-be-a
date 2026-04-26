@@ -112,4 +112,44 @@ public class EnrollmentController {
 		EnrollmentConfirmedResponse response = enrollmentService.confirm(id);
 		return ResponseEntity.ok(ApiResponse.success(response));
 	}
+
+	@Operation(
+			summary = "수강 취소",
+			description = "PENDING은 제한 없이 취소합니다. CONFIRMED는 결제 확정 시각(confirmedAt) 기준 7일 이내에만 취소할 수 있습니다. 성공 시 강의 정원(currentEnrollment)이 1 감소합니다.")
+	@ApiResponses({
+			@io.swagger.v3.oas.annotations.responses.ApiResponse(
+					responseCode = "200",
+					description = "취소 성공",
+					content = @Content(
+							mediaType = "application/json",
+							schema = @Schema(implementation = ApiResponse.class),
+							examples = @ExampleObject(value = """
+									{
+									  "success": true,
+									  "data": {
+									    "id": 1,
+									    "status": "CANCELLED"
+									  }
+									}
+									""")
+					)
+			),
+			@io.swagger.v3.oas.annotations.responses.ApiResponse(
+					responseCode = "400",
+					description = "이미 취소됨, 확정 후 7일 초과 등 취소 불가",
+					content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
+			),
+			@io.swagger.v3.oas.annotations.responses.ApiResponse(
+					responseCode = "404",
+					description = "수강 신청 또는 강의를 찾을 수 없음",
+					content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
+			)
+	})
+	@PatchMapping("/{id}/cancel")
+	public ResponseEntity<ApiResponse<EnrollmentCancelledResponse>> cancel(
+			@Parameter(description = "수강 신청 ID", example = "1")
+			@PathVariable long id) {
+		EnrollmentCancelledResponse response = enrollmentService.cancel(id);
+		return ResponseEntity.ok(ApiResponse.success(response));
+	}
 }
