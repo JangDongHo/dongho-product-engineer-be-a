@@ -56,7 +56,7 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(MissingServletRequestParameterException.class)
 	public ResponseEntity<ErrorResponse> handleMissingServletRequestParameter(MissingServletRequestParameterException e) {
 		ErrorCode errorCode = ErrorCode.VALIDATION_ERROR;
-		String message = "Required request parameter is missing: " + e.getParameterName();
+		String message = "필수 요청 파라미터가 누락되었습니다: " + e.getParameterName();
 		ErrorResponse body = new ErrorResponse(errorCode.getCode(), message);
 		return ResponseEntity.status(errorCode.getStatus()).body(body);
 	}

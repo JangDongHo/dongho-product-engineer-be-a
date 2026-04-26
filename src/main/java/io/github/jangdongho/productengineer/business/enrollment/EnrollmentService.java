@@ -118,8 +118,6 @@ public class EnrollmentService {
 			if (now.isAfter(deadline)) {
 				throw new BusinessException(ErrorCode.VALIDATION_ERROR, "결제 확정 후 7일이 지나 취소할 수 없습니다.");
 			}
-		} else if (enrollment.getStatus() != EnrollmentStatus.PENDING) {
-			throw new BusinessException(ErrorCode.VALIDATION_ERROR, "취소할 수 없는 수강 신청 상태입니다.");
 		}
 
 		Lecture lecture = lectureRepository.findById(enrollment.getClassId())
