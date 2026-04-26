@@ -8,7 +8,9 @@ import io.github.jangdongho.productengineer.persistence.enrollment.EnrollmentSta
 import io.github.jangdongho.productengineer.persistence.lecture.ClassStatus;
 import io.github.jangdongho.productengineer.persistence.lecture.Lecture;
 import io.github.jangdongho.productengineer.persistence.lecture.LectureRepository;
+import io.github.jangdongho.productengineer.presentation.enrollment.EnrollmentConfirmedResponse;
 import io.github.jangdongho.productengineer.presentation.enrollment.EnrollmentCreatedResponse;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,5 +49,21 @@ public class EnrollmentService {
 		enrollmentRepository.save(enrollment);
 
 		return new EnrollmentCreatedResponse(enrollment.getId(), enrollment.getStatus());
+	}
+
+	@Transactional
+	public EnrollmentConfirmedResponse confirm(long enrollmentId) {
+		Enrollment enrollment = enrollmentRepository.findById(enrollmentId)
+				.orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+
+		if (enrollment.getStatus() != EnrollmentStatus.PENDING) {
+			throw new BusinessException(ErrorCode.VALIDATION_ERROR, "결제 대기(PENDING) 상태의 신청만 확정할 수 있습니다.");
+		}
+
+		enrollment.setStatus(EnrollmentStatus.CONFIRMED);
+		enrollment.setConfirmedAt(LocalDateTime.now());
+		enrollmentRepository.save(enrollment);
+
+		return new EnrollmentConfirmedResponse(enrollment.getId(), enrollment.getStatus(), enrollment.getConfirmedAt());
 	}
 }
