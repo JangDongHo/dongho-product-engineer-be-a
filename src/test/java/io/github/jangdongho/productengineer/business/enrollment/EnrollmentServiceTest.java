@@ -18,20 +18,26 @@ import io.github.jangdongho.productengineer.persistence.enrollment.EnrollmentSta
 import io.github.jangdongho.productengineer.persistence.lecture.ClassStatus;
 import io.github.jangdongho.productengineer.persistence.lecture.Lecture;
 import io.github.jangdongho.productengineer.persistence.lecture.LectureRepository;
+import io.github.jangdongho.productengineer.presentation.enrollment.EnrollmentCancelledResponse;
 import io.github.jangdongho.productengineer.presentation.enrollment.EnrollmentConfirmedResponse;
 import io.github.jangdongho.productengineer.presentation.enrollment.EnrollmentCreatedResponse;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class EnrollmentServiceTest {
+
+	private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
 
 	@Mock
 	private LectureRepository lectureRepository;
@@ -39,8 +45,14 @@ class EnrollmentServiceTest {
 	@Mock
 	private EnrollmentRepository enrollmentRepository;
 
-	@InjectMocks
+	private Clock clock;
 	private EnrollmentService enrollmentService;
+
+	@BeforeEach
+	void setUp() {
+		clock = Clock.fixed(Instant.parse("2026-05-01T03:00:00Z"), SEOUL);
+		enrollmentService = new EnrollmentService(lectureRepository, enrollmentRepository, clock);
+	}
 
 	@Test
 	@DisplayName("enroll: OPEN 강의이고 정원 여유·미중복이면 PENDING 저장 및 currentEnrollment 1 증가")
@@ -140,7 +152,7 @@ class EnrollmentServiceTest {
 
 		assertThat(result.id()).isEqualTo(7L);
 		assertThat(result.status()).isEqualTo(EnrollmentStatus.CONFIRMED);
-		assertThat(result.confirmedAt()).isNotNull();
+		assertThat(result.confirmedAt()).isEqualTo(LocalDateTime.parse("2026-05-01T12:00:00"));
 		assertThat(pending.getConfirmedAt()).isEqualTo(result.confirmedAt());
 		verify(enrollmentRepository).save(pending);
 		verifyNoInteractions(lectureRepository);
@@ -197,6 +209,142 @@ class EnrollmentServiceTest {
 
 		enrollmentService.confirm(3L);
 
+		verifyNoInteractions(lectureRepository);
+	}
+
+	@Test
+	@DisplayName("cancel: PENDING이면 CANCELLED 전환 및 currentEnrollment 1 감소")
+	void cancel_pending_success() {
+		Enrollment enrollment = pendingEnrollment(20L, 1L, 10L);
+		Lecture lecture = openLecture(10L, 5, 4);
+		when(enrollmentRepository.findById(20L)).thenReturn(Optional.of(enrollment));
+		when(lectureRepository.findById(10L)).thenReturn(Optional.of(lecture));
+		when(enrollmentRepository.save(enrollment)).thenReturn(enrollment);
+
+		EnrollmentCancelledResponse result = enrollmentService.cancel(20L);
+
+		assertThat(result.id()).isEqualTo(20L);
+		assertThat(result.status()).isEqualTo(EnrollmentStatus.CANCELLED);
+		assertThat(enrollment.getStatus()).isEqualTo(EnrollmentStatus.CANCELLED);
+		assertThat(lecture.getCurrentEnrollment()).isEqualTo(3);
+		verify(lectureRepository).save(lecture);
+		verify(enrollmentRepository).save(enrollment);
+	}
+
+	@Test
+	@DisplayName("cancel: CONFIRMED이고 확정 후 7일 이내면 취소 및 currentEnrollment 1 감소")
+	void cancel_confirmed_within7Days() {
+		Clock c = Clock.fixed(Instant.parse("2026-05-10T03:00:00Z"), SEOUL);
+		EnrollmentService svc = new EnrollmentService(lectureRepository, enrollmentRepository, c);
+		Enrollment enrollment = pendingEnrollment(21L, 1L, 10L);
+		enrollment.setStatus(EnrollmentStatus.CONFIRMED);
+		enrollment.setConfirmedAt(LocalDateTime.parse("2026-05-05T12:00:00"));
+		Lecture lecture = openLecture(10L, 5, 2);
+		when(enrollmentRepository.findById(21L)).thenReturn(Optional.of(enrollment));
+		when(lectureRepository.findById(10L)).thenReturn(Optional.of(lecture));
+		when(enrollmentRepository.save(enrollment)).thenReturn(enrollment);
+
+		EnrollmentCancelledResponse result = svc.cancel(21L);
+
+		assertThat(result.status()).isEqualTo(EnrollmentStatus.CANCELLED);
+		assertThat(lecture.getCurrentEnrollment()).isEqualTo(1);
+		verify(lectureRepository).save(lecture);
+		verify(enrollmentRepository).save(enrollment);
+	}
+
+	@Test
+	@DisplayName("cancel: CONFIRMED이고 now가 마감 시각과 같으면 취소 허용(경계)")
+	void cancel_confirmed_atDeadline_inclusive() {
+		Clock c = Clock.fixed(Instant.parse("2026-05-12T03:00:00Z"), SEOUL);
+		EnrollmentService svc = new EnrollmentService(lectureRepository, enrollmentRepository, c);
+		Enrollment enrollment = pendingEnrollment(22L, 1L, 10L);
+		enrollment.setStatus(EnrollmentStatus.CONFIRMED);
+		enrollment.setConfirmedAt(LocalDateTime.parse("2026-05-05T12:00:00"));
+		Lecture lecture = openLecture(10L, 5, 1);
+		when(enrollmentRepository.findById(22L)).thenReturn(Optional.of(enrollment));
+		when(lectureRepository.findById(10L)).thenReturn(Optional.of(lecture));
+		when(enrollmentRepository.save(enrollment)).thenReturn(enrollment);
+
+		EnrollmentCancelledResponse result = svc.cancel(22L);
+
+		assertThat(result.status()).isEqualTo(EnrollmentStatus.CANCELLED);
+		assertThat(lecture.getCurrentEnrollment()).isEqualTo(0);
+		verify(lectureRepository).save(lecture);
+		verify(enrollmentRepository).save(enrollment);
+	}
+
+	@Test
+	@DisplayName("cancel: CONFIRMED이고 확정 후 7일 초과면 VALIDATION_ERROR(경계 직후)")
+	void cancel_confirmed_afterDeadline() {
+		Clock c = Clock.fixed(Instant.parse("2026-05-12T03:00:01Z"), SEOUL);
+		EnrollmentService svc = new EnrollmentService(lectureRepository, enrollmentRepository, c);
+		Enrollment enrollment = pendingEnrollment(23L, 1L, 10L);
+		enrollment.setStatus(EnrollmentStatus.CONFIRMED);
+		enrollment.setConfirmedAt(LocalDateTime.parse("2026-05-05T12:00:00"));
+		when(enrollmentRepository.findById(23L)).thenReturn(Optional.of(enrollment));
+
+		assertThatThrownBy(() -> svc.cancel(23L))
+				.isInstanceOf(BusinessException.class)
+				.satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode()).isEqualTo(ErrorCode.VALIDATION_ERROR));
+
+		verify(enrollmentRepository, never()).save(any());
+		verify(lectureRepository, never()).save(any());
+	}
+
+	@Test
+	@DisplayName("cancel: 이미 CANCELLED면 VALIDATION_ERROR")
+	void cancel_alreadyCancelled() {
+		Enrollment enrollment = pendingEnrollment(24L, 1L, 10L);
+		enrollment.setStatus(EnrollmentStatus.CANCELLED);
+		when(enrollmentRepository.findById(24L)).thenReturn(Optional.of(enrollment));
+
+		assertThatThrownBy(() -> enrollmentService.cancel(24L))
+				.isInstanceOf(BusinessException.class)
+				.satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode()).isEqualTo(ErrorCode.VALIDATION_ERROR));
+
+		verify(enrollmentRepository, never()).save(any());
+		verifyNoInteractions(lectureRepository);
+	}
+
+	@Test
+	@DisplayName("cancel: 신청 없으면 NOT_FOUND")
+	void cancel_notFound() {
+		when(enrollmentRepository.findById(99L)).thenReturn(Optional.empty());
+
+		assertThatThrownBy(() -> enrollmentService.cancel(99L))
+				.isInstanceOf(BusinessException.class)
+				.satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND));
+
+		verifyNoInteractions(lectureRepository);
+	}
+
+	@Test
+	@DisplayName("cancel: 강의 없으면 NOT_FOUND")
+	void cancel_lectureNotFound() {
+		Enrollment enrollment = pendingEnrollment(25L, 1L, 10L);
+		when(enrollmentRepository.findById(25L)).thenReturn(Optional.of(enrollment));
+		when(lectureRepository.findById(10L)).thenReturn(Optional.empty());
+
+		assertThatThrownBy(() -> enrollmentService.cancel(25L))
+				.isInstanceOf(BusinessException.class)
+				.satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND));
+
+		verify(enrollmentRepository, never()).save(any());
+		verify(lectureRepository, never()).save(any());
+	}
+
+	@Test
+	@DisplayName("cancel: CONFIRMED인데 confirmedAt 없으면 VALIDATION_ERROR")
+	void cancel_confirmed_missingConfirmedAt() {
+		Enrollment enrollment = pendingEnrollment(26L, 1L, 10L);
+		enrollment.setStatus(EnrollmentStatus.CONFIRMED);
+		when(enrollmentRepository.findById(26L)).thenReturn(Optional.of(enrollment));
+
+		assertThatThrownBy(() -> enrollmentService.cancel(26L))
+				.isInstanceOf(BusinessException.class)
+				.satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode()).isEqualTo(ErrorCode.VALIDATION_ERROR));
+
+		verify(enrollmentRepository, never()).save(any());
 		verifyNoInteractions(lectureRepository);
 	}
 

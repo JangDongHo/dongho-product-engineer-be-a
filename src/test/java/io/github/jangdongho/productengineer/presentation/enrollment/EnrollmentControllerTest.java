@@ -169,4 +169,40 @@ class EnrollmentControllerTest {
 				.andExpect(status().isNotFound())
 				.andExpect(jsonPath("$.code", is(ErrorCode.NOT_FOUND.getCode())));
 	}
+
+	@Test
+	@DisplayName("PATCH /enrollments/{id}/cancel 는 성공 시 200 과 id, CANCELLED 를 반환한다")
+	void cancel_returns200() throws Exception {
+		when(enrollmentService.cancel(1L))
+				.thenReturn(new EnrollmentCancelledResponse(1L, EnrollmentStatus.CANCELLED));
+
+		mockMvc.perform(patch("/enrollments/1/cancel"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.success", is(true)))
+				.andExpect(jsonPath("$.data.id", is(1)))
+				.andExpect(jsonPath("$.data.status", is("CANCELLED")));
+		verify(enrollmentService).cancel(1L);
+	}
+
+	@Test
+	@DisplayName("PATCH /enrollments/{id}/cancel 는 취소 불가 시 400 을 반환한다")
+	void cancel_validationError_returns400() throws Exception {
+		when(enrollmentService.cancel(2L))
+				.thenThrow(new BusinessException(ErrorCode.VALIDATION_ERROR, "결제 확정 후 7일이 지나 취소할 수 없습니다."));
+
+		mockMvc.perform(patch("/enrollments/2/cancel"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code", is(ErrorCode.VALIDATION_ERROR.getCode())));
+	}
+
+	@Test
+	@DisplayName("PATCH /enrollments/{id}/cancel 는 신청이 없을 때 404 를 반환한다")
+	void cancel_notFound_returns404() throws Exception {
+		when(enrollmentService.cancel(99L))
+				.thenThrow(new BusinessException(ErrorCode.NOT_FOUND));
+
+		mockMvc.perform(patch("/enrollments/99/cancel"))
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.code", is(ErrorCode.NOT_FOUND.getCode())));
+	}
 }
