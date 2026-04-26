@@ -7,5 +7,5 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
 
 	boolean existsByUserIdAndClassId(Long userId, Long classId);
 
-	List<Enrollment> findByUserIdOrderByIdAsc(Long userId);
+	List<Enrollment> findByUserIdOrderByCreatedAtDescIdDesc(Long userId);
 }

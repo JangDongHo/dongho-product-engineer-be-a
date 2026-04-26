@@ -22,7 +22,11 @@ import lombok.Setter;
 		uniqueConstraints = @UniqueConstraint(
 				name = "uk_enrollments_user_id_class_id",
 				columnNames = {"user_id", "class_id"}),
-		indexes = @Index(name = "ix_enrollments_user_id", columnList = "user_id"))
+		indexes = @Index(
+				name = "ix_enrollments_user_id_created_at_id",
+				columnList = "user_id,created_at,id"
+		)
+)
 public class Enrollment extends BaseEntity {
 
 	@Column(name = "user_id", nullable = false)

@@ -5,7 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface LectureRepository extends JpaRepository<Lecture, Long> {
 
-	List<Lecture> findAllByOrderByIdAsc();
+	List<Lecture> findAllByOrderByCreatedAtDesc();
 
-	List<Lecture> findByStatusOrderByIdAsc(ClassStatus status);
+	List<Lecture> findByStatusOrderByCreatedAtDesc(ClassStatus status);
 }

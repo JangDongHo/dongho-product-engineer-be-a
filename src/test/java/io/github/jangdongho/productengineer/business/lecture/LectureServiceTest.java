@@ -35,32 +35,32 @@ class LectureServiceTest {
 	private LectureService lectureService;
 
 	@Test
-	@DisplayName("listClasses: status 가 없으면 전체(id 오름차순)를 반환한다")
+	@DisplayName("listClasses: status 가 없으면 전체(createdAt 최신순)를 반환한다")
 	void listClasses_nullStatus_usesFindAll() {
 		Lecture a = sampleLecture(1L, ClassStatus.DRAFT);
 		Lecture b = sampleLecture(2L, ClassStatus.OPEN);
-		when(lectureRepository.findAllByOrderByIdAsc()).thenReturn(List.of(a, b));
+		when(lectureRepository.findAllByOrderByCreatedAtDesc()).thenReturn(List.of(b, a));
 
 		List<ClassListItemResponse> result = lectureService.listClasses(null);
 
 		assertThat(result).hasSize(2);
-		assertThat(result.getFirst().id()).isEqualTo(1L);
-		assertThat(result.get(1).id()).isEqualTo(2L);
-		verify(lectureRepository).findAllByOrderByIdAsc();
+		assertThat(result.getFirst().id()).isEqualTo(2L);
+		assertThat(result.get(1).id()).isEqualTo(1L);
+		verify(lectureRepository).findAllByOrderByCreatedAtDesc();
 	}
 
 	@Test
 	@DisplayName("listClasses: status 가 있으면 해당 상태만 반환한다")
 	void listClasses_withStatus_filters() {
 		Lecture open = sampleLecture(1L, ClassStatus.OPEN);
-		when(lectureRepository.findByStatusOrderByIdAsc(ClassStatus.OPEN))
+		when(lectureRepository.findByStatusOrderByCreatedAtDesc(ClassStatus.OPEN))
 				.thenReturn(List.of(open));
 
 		List<ClassListItemResponse> result = lectureService.listClasses(ClassStatus.OPEN);
 
 		assertThat(result).hasSize(1);
 		assertThat(result.getFirst().status()).isEqualTo(ClassStatus.OPEN);
-		verify(lectureRepository).findByStatusOrderByIdAsc(ClassStatus.OPEN);
+		verify(lectureRepository).findByStatusOrderByCreatedAtDesc(ClassStatus.OPEN);
 	}
 
 	@Test

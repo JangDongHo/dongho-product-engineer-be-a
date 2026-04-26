@@ -59,7 +59,7 @@ class EnrollmentServiceTest {
 	@Test
 	@DisplayName("listByUserId: 신청이 없으면 빈 목록")
 	void listByUserId_empty() {
-		when(enrollmentRepository.findByUserIdOrderByIdAsc(1L)).thenReturn(List.of());
+		when(enrollmentRepository.findByUserIdOrderByCreatedAtDescIdDesc(1L)).thenReturn(List.of());
 
 		assertThat(enrollmentService.listByUserId(1L)).isEmpty();
 
@@ -71,7 +71,7 @@ class EnrollmentServiceTest {
 	void listByUserId_mapsLecture() {
 		Enrollment e1 = pendingEnrollment(10L, 1L, 20L);
 		Lecture lec = openLecture(20L, 30, 2);
-		when(enrollmentRepository.findByUserIdOrderByIdAsc(1L)).thenReturn(List.of(e1));
+		when(enrollmentRepository.findByUserIdOrderByCreatedAtDescIdDesc(1L)).thenReturn(List.of(e1));
 		when(lectureRepository.findAllById(List.of(20L))).thenReturn(List.of(lec));
 
 		List<EnrollmentListItemResponse> result = enrollmentService.listByUserId(1L);
@@ -90,7 +90,7 @@ class EnrollmentServiceTest {
 	@DisplayName("listByUserId: 강의가 없으면 NOT_FOUND")
 	void listByUserId_lectureMissing() {
 		Enrollment e1 = pendingEnrollment(1L, 1L, 99L);
-		when(enrollmentRepository.findByUserIdOrderByIdAsc(1L)).thenReturn(List.of(e1));
+		when(enrollmentRepository.findByUserIdOrderByCreatedAtDescIdDesc(1L)).thenReturn(List.of(e1));
 		when(lectureRepository.findAllById(List.of(99L))).thenReturn(List.of());
 
 		assertThatThrownBy(() -> enrollmentService.listByUserId(1L))

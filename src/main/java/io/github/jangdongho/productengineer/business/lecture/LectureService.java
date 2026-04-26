@@ -25,8 +25,8 @@ public class LectureService {
 	@Transactional(readOnly = true)
 	public List<ClassListItemResponse> listClasses(@Nullable ClassStatus status) {
 		List<Lecture> lectures = status == null
-				? lectureRepository.findAllByOrderByIdAsc()
-				: lectureRepository.findByStatusOrderByIdAsc(status);
+				? lectureRepository.findAllByOrderByCreatedAtDesc()
+				: lectureRepository.findByStatusOrderByCreatedAtDesc(status);
 		return lectures.stream().map(this::toListItem).toList();
 	}
 
