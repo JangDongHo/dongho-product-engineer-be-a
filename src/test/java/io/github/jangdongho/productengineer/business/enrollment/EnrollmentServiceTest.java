@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
@@ -17,6 +18,7 @@ import io.github.jangdongho.productengineer.persistence.enrollment.EnrollmentSta
 import io.github.jangdongho.productengineer.persistence.lecture.ClassStatus;
 import io.github.jangdongho.productengineer.persistence.lecture.Lecture;
 import io.github.jangdongho.productengineer.persistence.lecture.LectureRepository;
+import io.github.jangdongho.productengineer.presentation.enrollment.EnrollmentConfirmedResponse;
 import io.github.jangdongho.productengineer.presentation.enrollment.EnrollmentCreatedResponse;
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -125,6 +127,86 @@ class EnrollmentServiceTest {
 		assertThatThrownBy(() -> enrollmentService.enroll(2L, 1L))
 				.isInstanceOf(BusinessException.class)
 				.satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode()).isEqualTo(ErrorCode.CONFLICT));
+	}
+
+	@Test
+	@DisplayName("confirm: PENDING이면 CONFIRMED·confirmedAt 기록")
+	void confirm_success() {
+		Enrollment pending = pendingEnrollment(7L, 1L, 10L);
+		when(enrollmentRepository.findById(7L)).thenReturn(Optional.of(pending));
+		when(enrollmentRepository.save(pending)).thenReturn(pending);
+
+		EnrollmentConfirmedResponse result = enrollmentService.confirm(7L);
+
+		assertThat(result.id()).isEqualTo(7L);
+		assertThat(result.status()).isEqualTo(EnrollmentStatus.CONFIRMED);
+		assertThat(result.confirmedAt()).isNotNull();
+		assertThat(pending.getConfirmedAt()).isEqualTo(result.confirmedAt());
+		verify(enrollmentRepository).save(pending);
+		verifyNoInteractions(lectureRepository);
+	}
+
+	@Test
+	@DisplayName("confirm: 이미 CONFIRMED면 VALIDATION_ERROR")
+	void confirm_alreadyConfirmed() {
+		Enrollment e = pendingEnrollment(1L, 1L, 10L);
+		e.setStatus(EnrollmentStatus.CONFIRMED);
+		when(enrollmentRepository.findById(1L)).thenReturn(Optional.of(e));
+
+		assertThatThrownBy(() -> enrollmentService.confirm(1L))
+				.isInstanceOf(BusinessException.class)
+				.satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode()).isEqualTo(ErrorCode.VALIDATION_ERROR));
+
+		verify(enrollmentRepository, never()).save(any());
+		verifyNoInteractions(lectureRepository);
+	}
+
+	@Test
+	@DisplayName("confirm: CANCELLED면 VALIDATION_ERROR")
+	void confirm_cancelled() {
+		Enrollment e = pendingEnrollment(2L, 1L, 10L);
+		e.setStatus(EnrollmentStatus.CANCELLED);
+		when(enrollmentRepository.findById(2L)).thenReturn(Optional.of(e));
+
+		assertThatThrownBy(() -> enrollmentService.confirm(2L))
+				.isInstanceOf(BusinessException.class)
+				.satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode()).isEqualTo(ErrorCode.VALIDATION_ERROR));
+
+		verify(enrollmentRepository, never()).save(any());
+		verifyNoInteractions(lectureRepository);
+	}
+
+	@Test
+	@DisplayName("confirm: 신청 없으면 NOT_FOUND")
+	void confirm_notFound() {
+		when(enrollmentRepository.findById(99L)).thenReturn(Optional.empty());
+
+		assertThatThrownBy(() -> enrollmentService.confirm(99L))
+				.isInstanceOf(BusinessException.class)
+				.satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND));
+
+		verifyNoInteractions(lectureRepository);
+	}
+
+	@Test
+	@DisplayName("confirm: LectureRepository를 호출하지 않아 currentEnrollment는 변경되지 않음")
+	void confirm_doesNotTouchLecture() {
+		Enrollment pending = pendingEnrollment(3L, 2L, 5L);
+		when(enrollmentRepository.findById(3L)).thenReturn(Optional.of(pending));
+		when(enrollmentRepository.save(pending)).thenReturn(pending);
+
+		enrollmentService.confirm(3L);
+
+		verifyNoInteractions(lectureRepository);
+	}
+
+	private static Enrollment pendingEnrollment(long id, long userId, long classId) {
+		Enrollment e = new Enrollment();
+		e.setId(id);
+		e.setUserId(userId);
+		e.setClassId(classId);
+		e.setStatus(EnrollmentStatus.PENDING);
+		return e;
 	}
 
 	private static Lecture openLecture(long id, int capacity, int currentEnrollment) {
