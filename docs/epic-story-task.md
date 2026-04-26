@@ -71,35 +71,35 @@
 
 ### Story 2-2. 강의 등록 API
 
-- [ ] **Task** `POST /classes` API 구현
+- [x] **Task** `POST /classes` API 구현
   - Request Body: `title`, `description`, `price`, `capacity`, `startDate`, `endDate` (`price` 는 **원 단위 정수**, JSON 숫자)
   - 초기 상태: `DRAFT`
-- [ ] **Task** 입력값 유효성 검증
+- [x] **Task** 입력값 유효성 검증
   - `@NotBlank`, `@Positive`, `@NotNull` 등 Bean Validation 적용
   - 400 Bad Request 응답
-- [ ] **Task** 단위 테스트 작성
+- [x] **Task** 단위 테스트 작성
   - 정상 등록 케이스
   - 필수 항목 누락 케이스
 
 ### Story 2-3. 강의 상태 전이 API
 
-- [ ] **Task** `PATCH /classes/{id}/status` API 구현
+- [x] **Task** `PATCH /classes/{id}/status` API 구현
   - Request Body: `status`
-- [ ] **Task** 허용된 상태 전이 규칙 구현
+- [x] **Task** 허용된 상태 전이 규칙 구현
   - `DRAFT → OPEN`, `OPEN → CLOSED` 만 허용
   - 그 외 전이 시도 → 400 Bad Request
-- [ ] **Task** 단위 테스트 작성
+- [x] **Task** 단위 테스트 작성
   - 정상 전이 케이스 (DRAFT→OPEN, OPEN→CLOSED)
   - 불허 전이 케이스 (DRAFT→CLOSED, CLOSED→OPEN)
 
 ### Story 2-4. 강의 목록 & 상세 조회 API
 
-- [ ] **Task** `GET /classes` API 구현
+- [x] **Task** `GET /classes` API 구현
   - Query Param: `status` (선택, 없으면 전체 반환)
-- [ ] **Task** `GET /classes/{id}` API 구현
+- [x] **Task** `GET /classes/{id}` API 구현
   - 현재 신청 인원 포함 응답 (`PENDING` + `CONFIRMED` COUNT)
   - 존재하지 않는 ID → 404 Not Found
-- [ ] **Task** 단위 테스트 작성
+- [x] **Task** 단위 테스트 작성
   - 상태 필터 조회 케이스
   - 현재 신청 인원 정확성 검증
 
