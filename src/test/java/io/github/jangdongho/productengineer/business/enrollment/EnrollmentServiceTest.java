@@ -21,10 +21,12 @@ import io.github.jangdongho.productengineer.persistence.lecture.LectureRepositor
 import io.github.jangdongho.productengineer.presentation.enrollment.EnrollmentCancelledResponse;
 import io.github.jangdongho.productengineer.presentation.enrollment.EnrollmentConfirmedResponse;
 import io.github.jangdongho.productengineer.presentation.enrollment.EnrollmentCreatedResponse;
+import io.github.jangdongho.productengineer.presentation.enrollment.EnrollmentListItemResponse;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -52,6 +54,48 @@ class EnrollmentServiceTest {
 	void setUp() {
 		clock = Clock.fixed(Instant.parse("2026-05-01T03:00:00Z"), SEOUL);
 		enrollmentService = new EnrollmentService(lectureRepository, enrollmentRepository, clock);
+	}
+
+	@Test
+	@DisplayName("listByUserId: 신청이 없으면 빈 목록")
+	void listByUserId_empty() {
+		when(enrollmentRepository.findByUserIdOrderByIdAsc(1L)).thenReturn(List.of());
+
+		assertThat(enrollmentService.listByUserId(1L)).isEmpty();
+
+		verify(lectureRepository, never()).findAllById(any());
+	}
+
+	@Test
+	@DisplayName("listByUserId: 신청·강의를 조합해 반환한다")
+	void listByUserId_mapsLecture() {
+		Enrollment e1 = pendingEnrollment(10L, 1L, 20L);
+		Lecture lec = openLecture(20L, 30, 2);
+		when(enrollmentRepository.findByUserIdOrderByIdAsc(1L)).thenReturn(List.of(e1));
+		when(lectureRepository.findAllById(List.of(20L))).thenReturn(List.of(lec));
+
+		List<EnrollmentListItemResponse> result = enrollmentService.listByUserId(1L);
+
+		assertThat(result).hasSize(1);
+		EnrollmentListItemResponse row = result.get(0);
+		assertThat(row.enrollmentId()).isEqualTo(10L);
+		assertThat(row.status()).isEqualTo(EnrollmentStatus.PENDING);
+		assertThat(row.confirmedAt()).isNull();
+		assertThat(row.lecture().id()).isEqualTo(20L);
+		assertThat(row.lecture().title()).isEqualTo("t");
+		assertThat(row.lecture().status()).isEqualTo(ClassStatus.OPEN);
+	}
+
+	@Test
+	@DisplayName("listByUserId: 강의가 없으면 NOT_FOUND")
+	void listByUserId_lectureMissing() {
+		Enrollment e1 = pendingEnrollment(1L, 1L, 99L);
+		when(enrollmentRepository.findByUserIdOrderByIdAsc(1L)).thenReturn(List.of(e1));
+		when(lectureRepository.findAllById(List.of(99L))).thenReturn(List.of());
+
+		assertThatThrownBy(() -> enrollmentService.listByUserId(1L))
+				.isInstanceOf(BusinessException.class)
+				.satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND));
 	}
 
 	@Test
