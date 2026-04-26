@@ -122,15 +122,15 @@
 
 ### Story 3-2. 수강 신청 API
 
-- [ ] **Task** `POST /enrollments` API 구현
+- [x] **Task** `POST /enrollments` API 구현
   - Request Body: `userId`, `classId`
   - 결과 상태: `PENDING`
   - 성공 시 `Lecture.currentEnrollment` 1 증가
-- [ ] **Task** 사전 조건 검증 로직 구현
+- [x] **Task** 사전 조건 검증 로직 구현
   - 강의 상태가 `OPEN`인지 확인 → 아니면 400
   - 동일 강의 중복 신청 확인 → 409 Conflict
   - 정원 초과 확인 → 409 Conflict (Epic 4에서 동시성 강화)
-- [ ] **Task** 단위 테스트 작성
+- [x] **Task** 단위 테스트 작성
   - 정상 신청 케이스
   - DRAFT/CLOSED 강의 신청 시도
   - 중복 신청 시도
