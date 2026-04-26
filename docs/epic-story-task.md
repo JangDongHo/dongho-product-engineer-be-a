@@ -113,24 +113,24 @@
 
 ### Story 3-1. 수강 신청 도메인 모델 설계
 
-- [ ] **Task** `Enrollment` 엔티티 설계
+- [x] **Task** `Enrollment` 엔티티 설계
   - 필드: `id`, `userId`, `classId`, `status`, `confirmedAt`, `createdAt`, `updatedAt`
-- [ ] **Task** `EnrollmentStatus` Enum 정의
+- [x] **Task** `EnrollmentStatus` Enum 정의
   - `PENDING`, `CONFIRMED`, `CANCELLED`
-- [ ] **Task** 인덱스 설계
+- [x] **Task** 인덱스 설계
   - `(userId, classId)` 유니크 제약 → 중복 신청 방지
 
 ### Story 3-2. 수강 신청 API
 
-- [ ] **Task** `POST /enrollments` API 구현
+- [x] **Task** `POST /enrollments` API 구현
   - Request Body: `userId`, `classId`
   - 결과 상태: `PENDING`
   - 성공 시 `Lecture.currentEnrollment` 1 증가
-- [ ] **Task** 사전 조건 검증 로직 구현
+- [x] **Task** 사전 조건 검증 로직 구현
   - 강의 상태가 `OPEN`인지 확인 → 아니면 400
   - 동일 강의 중복 신청 확인 → 409 Conflict
   - 정원 초과 확인 → 409 Conflict (Epic 4에서 동시성 강화)
-- [ ] **Task** 단위 테스트 작성
+- [x] **Task** 단위 테스트 작성
   - 정상 신청 케이스
   - DRAFT/CLOSED 강의 신청 시도
   - 중복 신청 시도
@@ -138,26 +138,26 @@
 
 ### Story 3-3. 결제 확정 API
 
-- [ ] **Task** `PATCH /enrollments/{id}/confirm` API 구현
+- [x] **Task** `PATCH /enrollments/{id}/confirm` API 구현
   - `PENDING → CONFIRMED` 상태 전이
   - `confirmedAt` 타임스탬프 기록 (취소 기간 계산 기준)
   - `currentEnrollment`는 신청(`PENDING`) 시점에 정원이 반영되므로, 확정 시 **증감 없음** (이중 집계 방지)
-- [ ] **Task** 예외 처리
+- [x] **Task** 예외 처리
   - `PENDING`이 아닌 상태에서 확정 시도 → 400
-- [ ] **Task** 단위 테스트 작성
+- [x] **Task** 단위 테스트 작성
   - 정상 확정 케이스
   - 이미 CONFIRMED / CANCELLED 상태 확정 시도
   - 확정 시 `currentEnrollment` 변화 없음
 
 ### Story 3-4. 수강 취소 API
 
-- [ ] **Task** `PATCH /enrollments/{id}/cancel` API 구현
-- [ ] **Task** 취소 분기 로직 구현
+- [x] **Task** `PATCH /enrollments/{id}/cancel` API 구현
+- [x] **Task** 취소 분기 로직 구현
   - `PENDING` 상태: 제한 없이 취소 가능
   - `CONFIRMED` 상태: `confirmedAt` 기준 7일 이내만 취소 가능
   - 7일 초과 시 → 400 Bad Request
   - 취소 성공 시 `Lecture.currentEnrollment` 1 감소
-- [ ] **Task** 단위 테스트 작성
+- [x] **Task** 단위 테스트 작성
   - PENDING 취소 케이스
   - CONFIRMED + 7일 이내 취소 케이스
   - CONFIRMED + 7일 초과 취소 케이스 (경계값 포함)
@@ -165,9 +165,9 @@
 
 ### Story 3-5. 내 수강 신청 목록 조회 API
 
-- [ ] **Task** `GET /enrollments?userId={userId}` API 구현
+- [x] **Task** `GET /enrollments?userId={userId}` API 구현
   - 응답: 강의 정보 + 신청 상태 포함
-- [ ] **Task** 단위 테스트 작성
+- [x] **Task** 단위 테스트 작성
 
 ---
 

@@ -5,6 +5,7 @@ import java.util.stream.Collectors;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -48,6 +49,14 @@ public class GlobalExceptionHandler {
 			message = ErrorCode.VALIDATION_ERROR.getDefaultMessage();
 		}
 		ErrorCode errorCode = ErrorCode.VALIDATION_ERROR;
+		ErrorResponse body = new ErrorResponse(errorCode.getCode(), message);
+		return ResponseEntity.status(errorCode.getStatus()).body(body);
+	}
+
+	@ExceptionHandler(MissingServletRequestParameterException.class)
+	public ResponseEntity<ErrorResponse> handleMissingServletRequestParameter(MissingServletRequestParameterException e) {
+		ErrorCode errorCode = ErrorCode.VALIDATION_ERROR;
+		String message = "필수 요청 파라미터가 누락되었습니다: " + e.getParameterName();
 		ErrorResponse body = new ErrorResponse(errorCode.getCode(), message);
 		return ResponseEntity.status(errorCode.getStatus()).body(body);
 	}
