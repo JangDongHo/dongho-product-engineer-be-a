@@ -96,6 +96,7 @@
 
 - [x] **Task** `GET /classes` API 구현
   - Query Param: `status` (선택, 없으면 전체 반환)
+  - 응답 목록: 강의 `createdAt` 기준 **최신순** 정렬
 - [x] **Task** `GET /classes/{id}` API 구현
   - 현재 신청 인원 `currentEnrollment` 반환
   - 존재하지 않는 ID → 404 Not Found
@@ -166,7 +167,7 @@
 ### Story 3-5. 내 수강 신청 목록 조회 API
 
 - [x] **Task** `GET /enrollments?userId={userId}` API 구현
-  - 응답: 강의 정보 + 신청 상태 포함
+  - 응답: 강의 정보 + 신청 상태 포함, 수강 신청 `createdAt` 기준 **최신순** 정렬
 - [x] **Task** 단위 테스트 작성
 
 ---
