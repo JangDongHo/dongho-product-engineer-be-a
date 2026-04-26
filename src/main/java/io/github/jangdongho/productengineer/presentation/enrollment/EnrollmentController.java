@@ -11,15 +11,20 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -30,6 +35,58 @@ import org.springframework.web.bind.annotation.RestController;
 public class EnrollmentController {
 
 	private final EnrollmentService enrollmentService;
+
+	@Operation(
+			summary = "내 수강 신청 목록",
+			description = "특정 사용자의 수강 신청을 수강 신청 ID 오름차순으로 조회합니다. 각 항목에 강의 요약(강의 목록 항목과 동일)과 신청 상태가 포함됩니다.")
+	@ApiResponses({
+			@io.swagger.v3.oas.annotations.responses.ApiResponse(
+					responseCode = "200",
+					description = "조회 성공 (신청이 없으면 빈 배열)",
+					content = @Content(
+							mediaType = "application/json",
+							schema = @Schema(implementation = ApiResponse.class),
+							examples = @ExampleObject(value = """
+									{
+									  "success": true,
+									  "data": [
+									    {
+									      "enrollmentId": 1,
+									      "status": "PENDING",
+									      "confirmedAt": null,
+									      "lecture": {
+									        "id": 10,
+									        "creatorId": 2,
+									        "title": "Spring Boot 실전 클래스",
+									        "status": "OPEN",
+									        "price": 10000,
+									        "capacity": 30,
+									        "startDate": "2026-05-01T10:00:00",
+									        "endDate": "2026-05-30T18:00:00"
+									      }
+									    }
+									  ]
+									}
+									""")
+					)
+			),
+			@io.swagger.v3.oas.annotations.responses.ApiResponse(
+					responseCode = "400",
+					description = "userId 누락·양수가 아님",
+					content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
+			),
+			@io.swagger.v3.oas.annotations.responses.ApiResponse(
+					responseCode = "404",
+					description = "수강이 참조하는 강의가 없음(데이터 불일치)",
+					content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
+			)
+	})
+	@GetMapping
+	public ResponseEntity<ApiResponse<List<EnrollmentListItemResponse>>> list(
+			@Parameter(description = "사용자 ID", example = "1", required = true)
+			@RequestParam("userId") @NotNull @Positive Long userId) {
+		return ResponseEntity.ok(ApiResponse.success(enrollmentService.listByUserId(userId)));
+	}
 
 	@Operation(summary = "수강 신청", description = "모집 중인 강의에 수강 신청을 등록합니다. 상태는 PENDING이며, 신청 시점에 정원(currentEnrollment)이 반영됩니다.")
 	@ApiResponses({

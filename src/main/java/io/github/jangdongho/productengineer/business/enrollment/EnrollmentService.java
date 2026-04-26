@@ -11,8 +11,13 @@ import io.github.jangdongho.productengineer.persistence.lecture.LectureRepositor
 import io.github.jangdongho.productengineer.presentation.enrollment.EnrollmentCancelledResponse;
 import io.github.jangdongho.productengineer.presentation.enrollment.EnrollmentConfirmedResponse;
 import io.github.jangdongho.productengineer.presentation.enrollment.EnrollmentCreatedResponse;
+import io.github.jangdongho.productengineer.presentation.enrollment.EnrollmentListItemResponse;
+import io.github.jangdongho.productengineer.presentation.lecture.ClassListItemResponse;
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +29,30 @@ public class EnrollmentService {
 	private final LectureRepository lectureRepository;
 	private final EnrollmentRepository enrollmentRepository;
 	private final Clock clock;
+
+	@Transactional(readOnly = true)
+	public List<EnrollmentListItemResponse> listByUserId(long userId) {
+		List<Enrollment> enrollments = enrollmentRepository.findByUserIdOrderByIdAsc(userId);
+		if (enrollments.isEmpty()) {
+			return List.of();
+		}
+		List<Long> classIds = enrollments.stream().map(Enrollment::getClassId).distinct().toList();
+		Map<Long, Lecture> lectureById = lectureRepository.findAllById(classIds).stream()
+				.collect(Collectors.toMap(Lecture::getId, lecture -> lecture));
+		return enrollments.stream()
+				.map(enrollment -> {
+					Lecture lecture = lectureById.get(enrollment.getClassId());
+					if (lecture == null) {
+						throw new BusinessException(ErrorCode.NOT_FOUND);
+					}
+					return new EnrollmentListItemResponse(
+							enrollment.getId(),
+							enrollment.getStatus(),
+							enrollment.getConfirmedAt(),
+							toListItem(lecture));
+				})
+				.toList();
+	}
 
 	@Transactional
 	public EnrollmentCreatedResponse enroll(long userId, long classId) {
@@ -102,5 +131,17 @@ public class EnrollmentService {
 		enrollmentRepository.save(enrollment);
 
 		return new EnrollmentCancelledResponse(enrollment.getId(), enrollment.getStatus());
+	}
+
+	private static ClassListItemResponse toListItem(Lecture lecture) {
+		return new ClassListItemResponse(
+				lecture.getId(),
+				lecture.getCreatorId(),
+				lecture.getTitle(),
+				lecture.getStatus(),
+				lecture.getPrice(),
+				lecture.getCapacity(),
+				lecture.getStartDate(),
+				lecture.getEndDate());
 	}
 }
