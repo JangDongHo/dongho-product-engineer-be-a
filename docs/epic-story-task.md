@@ -165,9 +165,9 @@
 
 ### Story 3-5. 내 수강 신청 목록 조회 API
 
-- [ ] **Task** `GET /enrollments?userId={userId}` API 구현
+- [x] **Task** `GET /enrollments?userId={userId}` API 구현
   - 응답: 강의 정보 + 신청 상태 포함
-- [ ] **Task** 단위 테스트 작성
+- [x] **Task** 단위 테스트 작성
 
 ---
 
