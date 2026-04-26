@@ -97,7 +97,7 @@
 - [x] **Task** `GET /classes` API 구현
   - Query Param: `status` (선택, 없으면 전체 반환)
 - [x] **Task** `GET /classes/{id}` API 구현
-  - 현재 신청 인원 포함 응답 (`PENDING` + `CONFIRMED` COUNT)
+  - 현재 신청 인원 `currentEnrollment` 반환
   - 존재하지 않는 ID → 404 Not Found
 - [x] **Task** 단위 테스트 작성
   - 상태 필터 조회 케이스
@@ -114,18 +114,18 @@
 ### Story 3-1. 수강 신청 도메인 모델 설계
 
 - [ ] **Task** `Enrollment` 엔티티 설계
-  - 필드: `id`, `userId`, `classId`, `status`, `confirmedAt`, `createdAt`
+  - 필드: `id`, `userId`, `classId`, `status`, `confirmedAt`, `createdAt`, `updatedAt`
 - [ ] **Task** `EnrollmentStatus` Enum 정의
   - `PENDING`, `CONFIRMED`, `CANCELLED`
 - [ ] **Task** 인덱스 설계
   - `(userId, classId)` 유니크 제약 → 중복 신청 방지
-  - `(classId, status)` → 현재 신청 인원 COUNT 조회 최적화
 
 ### Story 3-2. 수강 신청 API
 
 - [ ] **Task** `POST /enrollments` API 구현
   - Request Body: `userId`, `classId`
   - 결과 상태: `PENDING`
+  - 성공 시 `Lecture.currentEnrollment` 1 증가
 - [ ] **Task** 사전 조건 검증 로직 구현
   - 강의 상태가 `OPEN`인지 확인 → 아니면 400
   - 동일 강의 중복 신청 확인 → 409 Conflict
@@ -134,17 +134,20 @@
   - 정상 신청 케이스
   - DRAFT/CLOSED 강의 신청 시도
   - 중복 신청 시도
+  - `currentEnrollment` 1 증가 검증
 
 ### Story 3-3. 결제 확정 API
 
 - [ ] **Task** `PATCH /enrollments/{id}/confirm` API 구현
   - `PENDING → CONFIRMED` 상태 전이
   - `confirmedAt` 타임스탬프 기록 (취소 기간 계산 기준)
+  - `currentEnrollment`는 신청(`PENDING`) 시점에 정원이 반영되므로, 확정 시 **증감 없음** (이중 집계 방지)
 - [ ] **Task** 예외 처리
   - `PENDING`이 아닌 상태에서 확정 시도 → 400
 - [ ] **Task** 단위 테스트 작성
   - 정상 확정 케이스
   - 이미 CONFIRMED / CANCELLED 상태 확정 시도
+  - 확정 시 `currentEnrollment` 변화 없음
 
 ### Story 3-4. 수강 취소 API
 
@@ -153,10 +156,12 @@
   - `PENDING` 상태: 제한 없이 취소 가능
   - `CONFIRMED` 상태: `confirmedAt` 기준 7일 이내만 취소 가능
   - 7일 초과 시 → 400 Bad Request
+  - 취소 성공 시 `Lecture.currentEnrollment` 1 감소
 - [ ] **Task** 단위 테스트 작성
   - PENDING 취소 케이스
   - CONFIRMED + 7일 이내 취소 케이스
   - CONFIRMED + 7일 초과 취소 케이스 (경계값 포함)
+  - 취소 시 `currentEnrollment` 1 감소 검증
 
 ### Story 3-5. 내 수강 신청 목록 조회 API
 
@@ -174,11 +179,10 @@
 
 ### Story 4-1. 정원 초과 방지
 
-- [ ] **Task** 현재 신청 인원 계산 방식 결정
-  - `PENDING + CONFIRMED` 상태 COUNT 집계 방식 사용
-  - 별도 카운터 컬럼 vs COUNT 쿼리 트레이드오프 검토 및 결정
+- [ ] **Task** `Lecture.currentEnrollment`로 정원·현재 인원을 관리
+  - `PENDING` / `CONFIRMED`가 정원에 반영되는 규칙에 맞게, 수강 신청·확정·취소 흐름에서 `currentEnrollment`를 트랜잭션 내에서 일관되게 증감 갱신
 - [ ] **Task** 신청 시 정원 검증 로직 구현
-  - `currentCount >= capacity` 이면 409 Conflict
+  - `currentEnrollment >= capacity`이면 409 Conflict
 
 ### Story 4-2. 동시성 제어
 
