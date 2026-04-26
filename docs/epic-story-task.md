@@ -113,11 +113,11 @@
 
 ### Story 3-1. 수강 신청 도메인 모델 설계
 
-- [ ] **Task** `Enrollment` 엔티티 설계
+- [x] **Task** `Enrollment` 엔티티 설계
   - 필드: `id`, `userId`, `classId`, `status`, `confirmedAt`, `createdAt`, `updatedAt`
-- [ ] **Task** `EnrollmentStatus` Enum 정의
+- [x] **Task** `EnrollmentStatus` Enum 정의
   - `PENDING`, `CONFIRMED`, `CANCELLED`
-- [ ] **Task** 인덱스 설계
+- [x] **Task** 인덱스 설계
   - `(userId, classId)` 유니크 제약 → 중복 신청 방지
 
 ### Story 3-2. 수강 신청 API
