@@ -103,7 +103,7 @@
 
 ## 🔷 데이터 모델
 
-<img width="60%" alt="image" src="https://github.com/user-attachments/assets/9d7076ae-5259-441c-bb3c-8a21a6d6bbb8" />
+<img width="494" height="410" alt="image" src="https://github.com/user-attachments/assets/a7888be9-9607-4957-bcf9-0d22e4e4e448" />
 
 - User는 별도의 테이블로 관리하지 않고, 파라미터로 전달되는 `userId`를 기준으로 처리했습니다.
 - PK는 Auto Increment?
