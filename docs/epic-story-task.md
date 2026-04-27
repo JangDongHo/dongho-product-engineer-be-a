@@ -180,17 +180,17 @@
 
 ### Story 4-1. 정원 초과 방지
 
-- [ ] **Task** `Lecture.currentEnrollment`로 정원·현재 인원을 관리
+- [x] **Task** `Lecture.currentEnrollment`로 정원·현재 인원을 관리
   - `PENDING` / `CONFIRMED`가 정원에 반영되는 규칙에 맞게, 수강 신청·확정·취소 흐름에서 `currentEnrollment`를 트랜잭션 내에서 일관되게 증감 갱신
-- [ ] **Task** 신청 시 정원 검증 로직 구현
+- [x] **Task** 신청 시 정원 검증 로직 구현
   - `currentEnrollment >= capacity`이면 409 Conflict
 
 ### Story 4-2. 동시성 제어
 
-- [ ] **Task** 동시성 제어 방식 결정 및 근거 문서화
+- [x] **Task** 동시성 제어 방식 결정 및 근거 문서화
   - 비관적 락(`SELECT ... FOR UPDATE`) vs 낙관적 락(`@Version`) 비교
-- [ ] **Task** 선택한 방식으로 수강 신청 트랜잭션 구현
-- [ ] **Task** 동시 신청 통합 테스트 작성
+- [x] **Task** 선택한 방식으로 수강 신청 트랜잭션 구현
+- [x] **Task** 동시 신청 통합 테스트 작성
   - 잔여 1석에 N명 동시 신청 → 정확히 1명만 성공 검증
   - `CountDownLatch` + `ExecutorService` 멀티스레드 테스트
 
