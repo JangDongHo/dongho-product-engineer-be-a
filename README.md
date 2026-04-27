@@ -116,9 +116,43 @@
 | ------- | --------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------- | ----------- |
 | `POST`  | `/classes`                  | 강의 등록                            | `title`, `description`, `price`, `capacity`, `startDate`, `endDate` (`price` 는 KRW **원** 단위 정수) | 201 Created |
 | `PATCH` | `/classes/{id}/status`      | 강의 상태 전이                       | `status` (`DRAFT` \| `OPEN` \| `CLOSED`)                                                              | 200 OK      |
-| `GET`   | `/classes`                  | 강의 목록 조회                       | Query: `status` (선택)                                                                                | 200 OK      |
+| `GET`   | `/classes`                  | 강의 목록 조회                       | Query: `status` (선택), `page`, `size`                                                                | 200 OK      |
 | `GET`   | `/classes/{id}`             | 강의 상세 조회                       | —                                                                                                     | 200 OK      |
-| `GET`   | `/classes/{id}/enrollments` | 강의별 수강생 목록 (크리에이터 전용) | Query: `creatorId`                                                                                    | 200 OK      |
+| `GET`   | `/classes/{id}/enrollments` | 강의별 수강생 목록 (크리에이터 전용) | Query: `creatorId`, `page`, `size`                                                                    | 200 OK      |
+
+#### 목록 조회 페이지네이션
+
+- Offset 기반 페이지네이션을 사용합니다.
+- `page`는 0부터 시작하며 기본값은 `0`입니다.
+- `size`는 기본값 `20`, 최댓값 `100`입니다.
+- 페이지네이션이 적용된 목록 API는 응답 루트에서 `data`와 `meta`를 분리해 반환합니다.
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "creatorId": 10,
+      "title": "Spring Boot 실전 클래스",
+      "status": "OPEN",
+      "price": 10000,
+      "capacity": 30,
+      "startDate": "2026-05-01T10:00:00",
+      "endDate": "2026-05-30T18:00:00"
+    }
+  ],
+  "meta": {
+    "page": 0,
+    "size": 20,
+    "totalElements": 42,
+    "totalPages": 3,
+    "hasNext": true,
+    "hasPrevious": false,
+    "nextPage": 1
+  }
+}
+```
 
 #### 강의 상태 전이 규칙
 

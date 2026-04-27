@@ -2,6 +2,7 @@ package io.github.jangdongho.productengineer.enrollment.controller;
 
 import io.github.jangdongho.productengineer.common.api.ApiResponse;
 import io.github.jangdongho.productengineer.common.api.ErrorResponse;
+import io.github.jangdongho.productengineer.common.api.PageMeta;
 import io.github.jangdongho.productengineer.enrollment.dto.CreateEnrollmentRequest;
 import io.github.jangdongho.productengineer.enrollment.dto.EnrollmentCancelledResponse;
 import io.github.jangdongho.productengineer.enrollment.dto.EnrollmentConfirmedResponse;
@@ -16,10 +17,14 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -39,11 +44,16 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Enrollments", description = "수강 신청 API")
 public class EnrollmentController {
 
+	private static final int DEFAULT_PAGE = 0;
+	private static final int DEFAULT_SIZE = 20;
+	private static final int MAX_PAGE = 10_000;
+	private static final int MAX_SIZE = 100;
+
 	private final EnrollmentService enrollmentService;
 
 	@Operation(
 			summary = "내 수강 신청 목록",
-			description = "특정 사용자의 수강 신청을 수강 신청 ID 오름차순으로 조회합니다. 각 항목에 강의 요약(강의 목록 항목과 동일)과 신청 상태가 포함됩니다.")
+			description = "특정 사용자의 수강 신청을 생성일 최신순으로 페이지 조회합니다. 각 항목에 강의 요약(강의 목록 항목과 동일)과 신청 상태가 포함됩니다.")
 	@ApiResponses({
 			@io.swagger.v3.oas.annotations.responses.ApiResponse(
 					responseCode = "200",
@@ -70,7 +80,15 @@ public class EnrollmentController {
 									        "endDate": "2026-05-30T18:00:00"
 									      }
 									    }
-									  ]
+									  ],
+									  "meta": {
+									    "page": 0,
+									    "size": 20,
+									    "totalElements": 1,
+									    "totalPages": 1,
+									    "hasNext": false,
+									    "hasPrevious": false
+									  }
 									}
 									""")
 					)
@@ -89,8 +107,13 @@ public class EnrollmentController {
 	@GetMapping
 	public ResponseEntity<ApiResponse<List<EnrollmentListItemResponse>>> list(
 			@Parameter(description = "사용자 ID", example = "1", required = true)
-			@RequestParam("userId") @NotNull @Positive Long userId) {
-		return ResponseEntity.ok(ApiResponse.success(enrollmentService.listByUserId(userId)));
+			@RequestParam("userId") @NotNull @Positive Long userId,
+			@Parameter(description = "페이지 번호(0~10000)", example = "0")
+			@RequestParam(name = "page", defaultValue = "" + DEFAULT_PAGE) @PositiveOrZero @Max(MAX_PAGE) int page,
+			@Parameter(description = "페이지 크기(1~100)", example = "20")
+			@RequestParam(name = "size", defaultValue = "" + DEFAULT_SIZE) @Positive @Max(MAX_SIZE) int size) {
+		Page<EnrollmentListItemResponse> response = enrollmentService.listByUserId(userId, PageRequest.of(page, size));
+		return ResponseEntity.ok(ApiResponse.success(response.getContent(), PageMeta.from(response)));
 	}
 
 	@Operation(summary = "수강 신청", description = "모집 중인 강의에 수강 신청을 등록합니다. 상태는 PENDING이며, 신청 시점에 정원(currentEnrollment)이 반영됩니다.")

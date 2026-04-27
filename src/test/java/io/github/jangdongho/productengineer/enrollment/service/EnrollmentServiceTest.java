@@ -36,6 +36,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 
 @ExtendWith(MockitoExtension.class)
 class EnrollmentServiceTest {
@@ -60,9 +63,11 @@ class EnrollmentServiceTest {
 	@Test
 	@DisplayName("listByUserId: 신청이 없으면 빈 목록")
 	void listByUserId_empty() {
-		when(enrollmentRepository.findByUserIdOrderByCreatedAtDescIdDesc(1L)).thenReturn(List.of());
+		PageRequest pageable = PageRequest.of(0, 20);
+		when(enrollmentRepository.findByUserIdOrderByCreatedAtDescIdDesc(1L, pageable))
+				.thenReturn(new PageImpl<>(List.of(), pageable, 0));
 
-		assertThat(enrollmentService.listByUserId(1L)).isEmpty();
+		assertThat(enrollmentService.listByUserId(1L, pageable).getContent()).isEmpty();
 
 		verify(lectureRepository, never()).findAllById(any());
 	}
@@ -70,15 +75,17 @@ class EnrollmentServiceTest {
 	@Test
 	@DisplayName("listByUserId: 신청·강의를 조합해 반환한다")
 	void listByUserId_mapsLecture() {
+		PageRequest pageable = PageRequest.of(0, 20);
 		Enrollment e1 = pendingEnrollment(10L, 1L, 20L);
 		Lecture lec = openLecture(20L, 30, 2);
-		when(enrollmentRepository.findByUserIdOrderByCreatedAtDescIdDesc(1L)).thenReturn(List.of(e1));
+		when(enrollmentRepository.findByUserIdOrderByCreatedAtDescIdDesc(1L, pageable))
+				.thenReturn(new PageImpl<>(List.of(e1), pageable, 1));
 		when(lectureRepository.findAllById(List.of(20L))).thenReturn(List.of(lec));
 
-		List<EnrollmentListItemResponse> result = enrollmentService.listByUserId(1L);
+		Page<EnrollmentListItemResponse> result = enrollmentService.listByUserId(1L, pageable);
 
-		assertThat(result).hasSize(1);
-		EnrollmentListItemResponse row = result.get(0);
+		assertThat(result.getContent()).hasSize(1);
+		EnrollmentListItemResponse row = result.getContent().getFirst();
 		assertThat(row.enrollmentId()).isEqualTo(10L);
 		assertThat(row.status()).isEqualTo(EnrollmentStatus.PENDING);
 		assertThat(row.confirmedAt()).isNull();
@@ -90,11 +97,13 @@ class EnrollmentServiceTest {
 	@Test
 	@DisplayName("listByUserId: 강의가 없으면 NOT_FOUND")
 	void listByUserId_lectureMissing() {
+		PageRequest pageable = PageRequest.of(0, 20);
 		Enrollment e1 = pendingEnrollment(1L, 1L, 99L);
-		when(enrollmentRepository.findByUserIdOrderByCreatedAtDescIdDesc(1L)).thenReturn(List.of(e1));
+		when(enrollmentRepository.findByUserIdOrderByCreatedAtDescIdDesc(1L, pageable))
+				.thenReturn(new PageImpl<>(List.of(e1), pageable, 1));
 		when(lectureRepository.findAllById(List.of(99L))).thenReturn(List.of());
 
-		assertThatThrownBy(() -> enrollmentService.listByUserId(1L))
+		assertThatThrownBy(() -> enrollmentService.listByUserId(1L, pageable))
 				.isInstanceOf(BusinessException.class)
 				.satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND));
 	}

@@ -30,6 +30,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 
 @ExtendWith(MockitoExtension.class)
 class LectureServiceTest {
@@ -46,30 +49,33 @@ class LectureServiceTest {
 	@Test
 	@DisplayName("listClasses: status 가 없으면 전체(createdAt 최신순)를 반환한다")
 	void listClasses_nullStatus_usesFindAll() {
+		PageRequest pageable = PageRequest.of(0, 20);
 		Lecture a = sampleLecture(1L, ClassStatus.DRAFT);
 		Lecture b = sampleLecture(2L, ClassStatus.OPEN);
-		when(lectureRepository.findAllByOrderByCreatedAtDesc()).thenReturn(List.of(b, a));
+		when(lectureRepository.findAllByOrderByCreatedAtDesc(pageable))
+				.thenReturn(new PageImpl<>(List.of(b, a), pageable, 2));
 
-		List<ClassListItemResponse> result = lectureService.listClasses(null);
+		Page<ClassListItemResponse> result = lectureService.listClasses(null, pageable);
 
-		assertThat(result).hasSize(2);
-		assertThat(result.getFirst().id()).isEqualTo(2L);
-		assertThat(result.get(1).id()).isEqualTo(1L);
-		verify(lectureRepository).findAllByOrderByCreatedAtDesc();
+		assertThat(result.getContent()).hasSize(2);
+		assertThat(result.getContent().getFirst().id()).isEqualTo(2L);
+		assertThat(result.getContent().get(1).id()).isEqualTo(1L);
+		verify(lectureRepository).findAllByOrderByCreatedAtDesc(pageable);
 	}
 
 	@Test
 	@DisplayName("listClasses: status 가 있으면 해당 상태만 반환한다")
 	void listClasses_withStatus_filters() {
+		PageRequest pageable = PageRequest.of(0, 20);
 		Lecture open = sampleLecture(1L, ClassStatus.OPEN);
-		when(lectureRepository.findByStatusOrderByCreatedAtDesc(ClassStatus.OPEN))
-				.thenReturn(List.of(open));
+		when(lectureRepository.findByStatusOrderByCreatedAtDesc(ClassStatus.OPEN, pageable))
+				.thenReturn(new PageImpl<>(List.of(open), pageable, 1));
 
-		List<ClassListItemResponse> result = lectureService.listClasses(ClassStatus.OPEN);
+		Page<ClassListItemResponse> result = lectureService.listClasses(ClassStatus.OPEN, pageable);
 
-		assertThat(result).hasSize(1);
-		assertThat(result.getFirst().status()).isEqualTo(ClassStatus.OPEN);
-		verify(lectureRepository).findByStatusOrderByCreatedAtDesc(ClassStatus.OPEN);
+		assertThat(result.getContent()).hasSize(1);
+		assertThat(result.getContent().getFirst().status()).isEqualTo(ClassStatus.OPEN);
+		verify(lectureRepository).findByStatusOrderByCreatedAtDesc(ClassStatus.OPEN, pageable);
 	}
 
 	@Test
@@ -162,9 +168,10 @@ class LectureServiceTest {
 	@Test
 	@DisplayName("listConfirmedEnrollmentsForCreator: 강의 없으면 NOT_FOUND, enrollmentRepository 미호출")
 	void listConfirmed_classNotFound() {
+		PageRequest pageable = PageRequest.of(0, 20);
 		when(lectureRepository.findById(99L)).thenReturn(Optional.empty());
 
-		assertThatThrownBy(() -> lectureService.listConfirmedEnrollmentsForCreator(99L, 1L))
+		assertThatThrownBy(() -> lectureService.listConfirmedEnrollmentsForCreator(99L, 1L, pageable))
 				.isInstanceOf(BusinessException.class)
 				.satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND));
 
@@ -174,11 +181,12 @@ class LectureServiceTest {
 	@Test
 	@DisplayName("listConfirmedEnrollmentsForCreator: 소유자 아님 FORBIDDEN, enrollmentRepository 미호출")
 	void listConfirmed_forbidden() {
+		PageRequest pageable = PageRequest.of(0, 20);
 		Lecture lecture = sampleLecture(1L, ClassStatus.OPEN);
 		lecture.setCreatorId(10L);
 		when(lectureRepository.findById(1L)).thenReturn(Optional.of(lecture));
 
-		assertThatThrownBy(() -> lectureService.listConfirmedEnrollmentsForCreator(1L, 99L))
+		assertThatThrownBy(() -> lectureService.listConfirmedEnrollmentsForCreator(1L, 99L, pageable))
 				.isInstanceOf(BusinessException.class)
 				.satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode()).isEqualTo(ErrorCode.FORBIDDEN));
 
@@ -188,20 +196,28 @@ class LectureServiceTest {
 	@Test
 	@DisplayName("listConfirmedEnrollmentsForCreator: 소유자·CONFIRMED 없으면 빈 목록")
 	void listConfirmed_empty() {
+		PageRequest pageable = PageRequest.of(0, 20);
 		Lecture lecture = sampleLecture(5L, ClassStatus.OPEN);
 		lecture.setCreatorId(2L);
 		when(lectureRepository.findById(5L)).thenReturn(Optional.of(lecture));
-		when(enrollmentRepository.findByClassIdAndStatusOrderByCreatedAtDescIdDesc(5L, EnrollmentStatus.CONFIRMED))
-				.thenReturn(List.of());
+		when(enrollmentRepository.findByClassIdAndStatusOrderByCreatedAtDescIdDesc(
+				5L,
+				EnrollmentStatus.CONFIRMED,
+				pageable))
+				.thenReturn(new PageImpl<>(List.of(), pageable, 0));
 
-		List<ClassConfirmedEnrollmentItemResponse> result = lectureService.listConfirmedEnrollmentsForCreator(5L, 2L);
+		Page<ClassConfirmedEnrollmentItemResponse> result = lectureService.listConfirmedEnrollmentsForCreator(
+				5L,
+				2L,
+				pageable);
 
-		assertThat(result).isEmpty();
+		assertThat(result.getContent()).isEmpty();
 	}
 
 	@Test
 	@DisplayName("listConfirmedEnrollmentsForCreator: CONFIRMED 항목을 DTO로 반환")
 	void listConfirmed_mapsRows() {
+		PageRequest pageable = PageRequest.of(0, 20);
 		Lecture lecture = sampleLecture(3L, ClassStatus.OPEN);
 		lecture.setCreatorId(7L);
 		Enrollment e = new Enrollment();
@@ -211,16 +227,22 @@ class LectureServiceTest {
 		e.setStatus(EnrollmentStatus.CONFIRMED);
 		e.setConfirmedAt(LocalDateTime.parse("2026-06-10T15:00:00"));
 		when(lectureRepository.findById(3L)).thenReturn(Optional.of(lecture));
-		when(enrollmentRepository.findByClassIdAndStatusOrderByCreatedAtDescIdDesc(3L, EnrollmentStatus.CONFIRMED))
-				.thenReturn(List.of(e));
+		when(enrollmentRepository.findByClassIdAndStatusOrderByCreatedAtDescIdDesc(
+				3L,
+				EnrollmentStatus.CONFIRMED,
+				pageable))
+				.thenReturn(new PageImpl<>(List.of(e), pageable, 1));
 
-		List<ClassConfirmedEnrollmentItemResponse> result = lectureService.listConfirmedEnrollmentsForCreator(3L, 7L);
+		Page<ClassConfirmedEnrollmentItemResponse> result = lectureService.listConfirmedEnrollmentsForCreator(
+				3L,
+				7L,
+				pageable);
 
-		assertThat(result).hasSize(1);
-		assertThat(result.getFirst().enrollmentId()).isEqualTo(100L);
-		assertThat(result.getFirst().userId()).isEqualTo(20L);
-		assertThat(result.getFirst().status()).isEqualTo(EnrollmentStatus.CONFIRMED);
-		assertThat(result.getFirst().confirmedAt()).isEqualTo(LocalDateTime.parse("2026-06-10T15:00:00"));
+		assertThat(result.getContent()).hasSize(1);
+		assertThat(result.getContent().getFirst().enrollmentId()).isEqualTo(100L);
+		assertThat(result.getContent().getFirst().userId()).isEqualTo(20L);
+		assertThat(result.getContent().getFirst().status()).isEqualTo(EnrollmentStatus.CONFIRMED);
+		assertThat(result.getContent().getFirst().confirmedAt()).isEqualTo(LocalDateTime.parse("2026-06-10T15:00:00"));
 	}
 
 	private static Lecture sampleLecture(long id, ClassStatus status) {
