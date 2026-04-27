@@ -26,6 +26,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -131,22 +133,35 @@ class EnrollmentControllerTest {
 	@Test
 	@DisplayName("GET /enrollments?userId= 는 성공 시 200 과 목록을 반환한다")
 	void list_returns200() throws Exception {
+		PageRequest pageable = PageRequest.of(1, 2);
 		ClassListItemResponse lecture = new ClassListItemResponse(
 				10L, 2L, "Spring Boot", ClassStatus.OPEN, 10_000L, 30,
 				LocalDateTime.parse("2026-05-01T10:00:00"), LocalDateTime.parse("2026-05-30T18:00:00"));
-		when(enrollmentService.listByUserId(1L))
-				.thenReturn(List.of(
-						new EnrollmentListItemResponse(5L, EnrollmentStatus.PENDING, null, lecture)));
+		when(enrollmentService.listByUserId(1L, pageable))
+				.thenReturn(new PageImpl<>(
+						List.of(new EnrollmentListItemResponse(5L, EnrollmentStatus.PENDING, null, lecture)),
+						pageable,
+						3));
 
-		mockMvc.perform(get("/enrollments").param("userId", "1"))
+		mockMvc.perform(get("/enrollments")
+						.param("userId", "1")
+						.param("page", "1")
+						.param("size", "2"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.success", is(true)))
 				.andExpect(jsonPath("$.data[0].enrollmentId", is(5)))
 				.andExpect(jsonPath("$.data[0].status", is("PENDING")))
 				.andExpect(jsonPath("$.data[0].confirmedAt").doesNotExist())
 				.andExpect(jsonPath("$.data[0].lecture.id", is(10)))
-				.andExpect(jsonPath("$.data[0].lecture.title", is("Spring Boot")));
-		verify(enrollmentService).listByUserId(1L);
+				.andExpect(jsonPath("$.data[0].lecture.title", is("Spring Boot")))
+				.andExpect(jsonPath("$.meta.page", is(1)))
+				.andExpect(jsonPath("$.meta.size", is(2)))
+				.andExpect(jsonPath("$.meta.totalElements", is(3)))
+				.andExpect(jsonPath("$.meta.totalPages", is(2)))
+				.andExpect(jsonPath("$.meta.hasNext", is(false)))
+				.andExpect(jsonPath("$.meta.hasPrevious", is(true)))
+				.andExpect(jsonPath("$.meta.nextPage").doesNotExist());
+		verify(enrollmentService).listByUserId(1L, pageable);
 	}
 
 	@Test
@@ -166,9 +181,20 @@ class EnrollmentControllerTest {
 	}
 
 	@Test
+	@DisplayName("GET /enrollments 는 page 음수 또는 size 초과면 400 을 반환한다")
+	void list_invalidPagination_returns400() throws Exception {
+		mockMvc.perform(get("/enrollments")
+						.param("userId", "1")
+						.param("page", "-1")
+						.param("size", "101"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code", is(ErrorCode.VALIDATION_ERROR.getCode())));
+	}
+
+	@Test
 	@DisplayName("GET /enrollments?userId= 는 데이터 불일치 시 404 를 반환한다")
 	void list_lectureMissing_returns404() throws Exception {
-		when(enrollmentService.listByUserId(1L))
+		when(enrollmentService.listByUserId(1L, PageRequest.of(0, 20)))
 				.thenThrow(new BusinessException(ErrorCode.NOT_FOUND));
 
 		mockMvc.perform(get("/enrollments").param("userId", "1"))
