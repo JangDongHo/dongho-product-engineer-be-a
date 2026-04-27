@@ -61,7 +61,7 @@ public class EnrollmentService {
 
 	@Transactional
 	public EnrollmentCreatedResponse enroll(long userId, long classId) {
-		Lecture lecture = lectureRepository.findById(classId)
+		Lecture lecture = lectureRepository.findByIdForUpdate(classId)
 				.orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
 
 		if (lecture.getStatus() != ClassStatus.OPEN) {
@@ -125,7 +125,7 @@ public class EnrollmentService {
 			}
 		}
 
-		Lecture lecture = lectureRepository.findById(enrollment.getClassId())
+		Lecture lecture = lectureRepository.findByIdForUpdate(enrollment.getClassId())
 				.orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
 		lecture.setCurrentEnrollment(lecture.getCurrentEnrollment() - 1);
 		lectureRepository.save(lecture);

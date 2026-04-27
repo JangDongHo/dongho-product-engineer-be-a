@@ -103,7 +103,7 @@ class EnrollmentServiceTest {
 	@DisplayName("enroll: OPEN 강의이고 정원 여유·미중복이면 PENDING 저장 및 currentEnrollment 1 증가")
 	void enroll_success() {
 		Lecture lecture = openLecture(10L, 5, 3);
-		when(lectureRepository.findById(10L)).thenReturn(Optional.of(lecture));
+		when(lectureRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(lecture));
 		when(enrollmentRepository.existsByUserIdAndClassId(1L, 10L)).thenReturn(false);
 		when(enrollmentRepository.save(any(Enrollment.class))).thenAnswer(inv -> {
 			Enrollment e = inv.getArgument(0);
@@ -128,13 +128,13 @@ class EnrollmentServiceTest {
 	@Test
 	@DisplayName("enroll: 강의 없으면 NOT_FOUND")
 	void enroll_classNotFound() {
-		when(lectureRepository.findById(99L)).thenReturn(Optional.empty());
+		when(lectureRepository.findByIdForUpdate(99L)).thenReturn(Optional.empty());
 
 		assertThatThrownBy(() -> enrollmentService.enroll(1L, 99L))
 				.isInstanceOf(BusinessException.class)
 				.satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND));
 
-		verify(lectureRepository).findById(eq(99L));
+		verify(lectureRepository).findByIdForUpdate(eq(99L));
 		verifyNoMoreInteractions(lectureRepository);
 		verifyNoMoreInteractions(enrollmentRepository);
 	}
@@ -143,7 +143,7 @@ class EnrollmentServiceTest {
 	@DisplayName("enroll: DRAFT 강의면 VALIDATION_ERROR")
 	void enroll_draftClass() {
 		Lecture lecture = lectureWithStatus(1L, ClassStatus.DRAFT, 10, 0);
-		when(lectureRepository.findById(1L)).thenReturn(Optional.of(lecture));
+		when(lectureRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(lecture));
 
 		assertThatThrownBy(() -> enrollmentService.enroll(2L, 1L))
 				.isInstanceOf(BusinessException.class)
@@ -156,7 +156,7 @@ class EnrollmentServiceTest {
 	@DisplayName("enroll: CLOSED 강의면 VALIDATION_ERROR")
 	void enroll_closedClass() {
 		Lecture lecture = lectureWithStatus(1L, ClassStatus.CLOSED, 10, 0);
-		when(lectureRepository.findById(1L)).thenReturn(Optional.of(lecture));
+		when(lectureRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(lecture));
 
 		assertThatThrownBy(() -> enrollmentService.enroll(2L, 1L))
 				.isInstanceOf(BusinessException.class)
@@ -167,7 +167,7 @@ class EnrollmentServiceTest {
 	@DisplayName("enroll: 정원 초과면 CONFLICT")
 	void enroll_capacityFull() {
 		Lecture lecture = openLecture(1L, 10, 10);
-		when(lectureRepository.findById(1L)).thenReturn(Optional.of(lecture));
+		when(lectureRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(lecture));
 
 		assertThatThrownBy(() -> enrollmentService.enroll(2L, 1L))
 				.isInstanceOf(BusinessException.class)
@@ -178,7 +178,7 @@ class EnrollmentServiceTest {
 	@DisplayName("enroll: 동일 강의 중복 신청이면 CONFLICT")
 	void enroll_duplicate() {
 		Lecture lecture = openLecture(1L, 10, 2);
-		when(lectureRepository.findById(1L)).thenReturn(Optional.of(lecture));
+		when(lectureRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(lecture));
 		when(enrollmentRepository.existsByUserIdAndClassId(2L, 1L)).thenReturn(true);
 
 		assertThatThrownBy(() -> enrollmentService.enroll(2L, 1L))
@@ -263,7 +263,7 @@ class EnrollmentServiceTest {
 		Enrollment enrollment = pendingEnrollment(20L, 1L, 10L);
 		Lecture lecture = openLecture(10L, 5, 4);
 		when(enrollmentRepository.findById(20L)).thenReturn(Optional.of(enrollment));
-		when(lectureRepository.findById(10L)).thenReturn(Optional.of(lecture));
+		when(lectureRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(lecture));
 		when(enrollmentRepository.save(enrollment)).thenReturn(enrollment);
 
 		EnrollmentCancelledResponse result = enrollmentService.cancel(20L);
@@ -286,7 +286,7 @@ class EnrollmentServiceTest {
 		enrollment.setConfirmedAt(LocalDateTime.parse("2026-05-05T12:00:00"));
 		Lecture lecture = openLecture(10L, 5, 2);
 		when(enrollmentRepository.findById(21L)).thenReturn(Optional.of(enrollment));
-		when(lectureRepository.findById(10L)).thenReturn(Optional.of(lecture));
+		when(lectureRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(lecture));
 		when(enrollmentRepository.save(enrollment)).thenReturn(enrollment);
 
 		EnrollmentCancelledResponse result = svc.cancel(21L);
@@ -307,7 +307,7 @@ class EnrollmentServiceTest {
 		enrollment.setConfirmedAt(LocalDateTime.parse("2026-05-05T12:00:00"));
 		Lecture lecture = openLecture(10L, 5, 1);
 		when(enrollmentRepository.findById(22L)).thenReturn(Optional.of(enrollment));
-		when(lectureRepository.findById(10L)).thenReturn(Optional.of(lecture));
+		when(lectureRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(lecture));
 		when(enrollmentRepository.save(enrollment)).thenReturn(enrollment);
 
 		EnrollmentCancelledResponse result = svc.cancel(22L);
@@ -368,7 +368,7 @@ class EnrollmentServiceTest {
 	void cancel_lectureNotFound() {
 		Enrollment enrollment = pendingEnrollment(25L, 1L, 10L);
 		when(enrollmentRepository.findById(25L)).thenReturn(Optional.of(enrollment));
-		when(lectureRepository.findById(10L)).thenReturn(Optional.empty());
+		when(lectureRepository.findByIdForUpdate(10L)).thenReturn(Optional.empty());
 
 		assertThatThrownBy(() -> enrollmentService.cancel(25L))
 				.isInstanceOf(BusinessException.class)
