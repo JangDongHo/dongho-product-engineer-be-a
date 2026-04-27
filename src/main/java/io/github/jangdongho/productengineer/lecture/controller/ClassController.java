@@ -49,6 +49,7 @@ public class ClassController {
 
 	private static final int DEFAULT_PAGE = 0;
 	private static final int DEFAULT_SIZE = 20;
+	private static final int MAX_PAGE = 10_000;
 	private static final int MAX_SIZE = 100;
 
 	private final LectureService lectureService;
@@ -98,8 +99,8 @@ public class ClassController {
 	public ResponseEntity<ApiResponse<List<ClassListItemResponse>>> list(
 			@Parameter(description = "강의 모집 상태 필터", example = "OPEN")
 			@RequestParam(name = "status", required = false) ClassStatus status,
-			@Parameter(description = "페이지 번호(0부터 시작)", example = "0")
-			@RequestParam(name = "page", defaultValue = "" + DEFAULT_PAGE) @PositiveOrZero int page,
+			@Parameter(description = "페이지 번호(0~10000)", example = "0")
+			@RequestParam(name = "page", defaultValue = "" + DEFAULT_PAGE) @PositiveOrZero @Max(MAX_PAGE) int page,
 			@Parameter(description = "페이지 크기(1~100)", example = "20")
 			@RequestParam(name = "size", defaultValue = "" + DEFAULT_SIZE) @Positive @Max(MAX_SIZE) int size) {
 		Page<ClassListItemResponse> response = lectureService.listClasses(status, PageRequest.of(page, size));
@@ -202,8 +203,8 @@ public class ClassController {
 			@PathVariable long id,
 			@Parameter(description = "강의 소유자(크리에이터) ID", example = "10", required = true)
 			@RequestParam("creatorId") @NotNull @Positive Long creatorId,
-			@Parameter(description = "페이지 번호(0부터 시작)", example = "0")
-			@RequestParam(name = "page", defaultValue = "" + DEFAULT_PAGE) @PositiveOrZero int page,
+			@Parameter(description = "페이지 번호(0~10000)", example = "0")
+			@RequestParam(name = "page", defaultValue = "" + DEFAULT_PAGE) @PositiveOrZero @Max(MAX_PAGE) int page,
 			@Parameter(description = "페이지 크기(1~100)", example = "20")
 			@RequestParam(name = "size", defaultValue = "" + DEFAULT_SIZE) @Positive @Max(MAX_SIZE) int size) {
 		Page<ClassConfirmedEnrollmentItemResponse> response = lectureService.listConfirmedEnrollmentsForCreator(

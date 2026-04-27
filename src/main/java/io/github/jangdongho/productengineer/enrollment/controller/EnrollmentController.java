@@ -46,6 +46,7 @@ public class EnrollmentController {
 
 	private static final int DEFAULT_PAGE = 0;
 	private static final int DEFAULT_SIZE = 20;
+	private static final int MAX_PAGE = 10_000;
 	private static final int MAX_SIZE = 100;
 
 	private final EnrollmentService enrollmentService;
@@ -107,8 +108,8 @@ public class EnrollmentController {
 	public ResponseEntity<ApiResponse<List<EnrollmentListItemResponse>>> list(
 			@Parameter(description = "사용자 ID", example = "1", required = true)
 			@RequestParam("userId") @NotNull @Positive Long userId,
-			@Parameter(description = "페이지 번호(0부터 시작)", example = "0")
-			@RequestParam(name = "page", defaultValue = "" + DEFAULT_PAGE) @PositiveOrZero int page,
+			@Parameter(description = "페이지 번호(0~10000)", example = "0")
+			@RequestParam(name = "page", defaultValue = "" + DEFAULT_PAGE) @PositiveOrZero @Max(MAX_PAGE) int page,
 			@Parameter(description = "페이지 크기(1~100)", example = "20")
 			@RequestParam(name = "size", defaultValue = "" + DEFAULT_SIZE) @Positive @Max(MAX_SIZE) int size) {
 		Page<EnrollmentListItemResponse> response = enrollmentService.listByUserId(userId, PageRequest.of(page, size));
