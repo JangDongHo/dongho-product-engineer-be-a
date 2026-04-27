@@ -14,6 +14,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import io.github.jangdongho.productengineer.common.exception.BusinessException;
 import io.github.jangdongho.productengineer.common.exception.ErrorCode;
 import io.github.jangdongho.productengineer.common.exception.GlobalExceptionHandler;
+import io.github.jangdongho.productengineer.enrollment.domain.EnrollmentStatus;
+import io.github.jangdongho.productengineer.enrollment.dto.ClassConfirmedEnrollmentItemResponse;
 import io.github.jangdongho.productengineer.lecture.domain.ClassStatus;
 import io.github.jangdongho.productengineer.lecture.dto.ClassCreatedResponse;
 import io.github.jangdongho.productengineer.lecture.dto.ClassDetailResponse;
@@ -96,6 +98,71 @@ class ClassControllerTest {
 		mockMvc.perform(get("/classes/99"))
 				.andExpect(status().isNotFound())
 				.andExpect(jsonPath("$.code", is(ErrorCode.NOT_FOUND.getCode())));
+	}
+
+	@Test
+	@DisplayName("GET /classes/{id}/enrollments?creatorId= 는 소유자·확정 수강생을 반환한다")
+	void getEnrollments_confirmedList_returns200() throws Exception {
+		ClassConfirmedEnrollmentItemResponse row = new ClassConfirmedEnrollmentItemResponse(
+				1L, 100L, EnrollmentStatus.CONFIRMED, LocalDateTime.parse("2026-05-01T12:00:00"));
+		when(lectureService.listConfirmedEnrollmentsForCreator(1L, 10L)).thenReturn(List.of(row));
+
+		mockMvc.perform(get("/classes/1/enrollments").param("creatorId", "10"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.success", is(true)))
+				.andExpect(jsonPath("$.data[0].enrollmentId", is(1)))
+				.andExpect(jsonPath("$.data[0].userId", is(100)))
+				.andExpect(jsonPath("$.data[0].status", is("CONFIRMED")));
+		verify(lectureService).listConfirmedEnrollmentsForCreator(1L, 10L);
+	}
+
+	@Test
+	@DisplayName("GET /classes/{id}/enrollments 는 확정 수강생 없을 때 200 빈 배열")
+	void getEnrollments_empty_returns200() throws Exception {
+		when(lectureService.listConfirmedEnrollmentsForCreator(2L, 1L)).thenReturn(List.of());
+
+		mockMvc.perform(get("/classes/2/enrollments").param("creatorId", "1"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.success", is(true)))
+				.andExpect(jsonPath("$.data.length()", is(0)));
+	}
+
+	@Test
+	@DisplayName("GET /classes/{id}/enrollments 는 강의 없을 때 404")
+	void getEnrollments_notFound_returns404() throws Exception {
+		when(lectureService.listConfirmedEnrollmentsForCreator(99L, 1L))
+				.thenThrow(new BusinessException(ErrorCode.NOT_FOUND));
+
+		mockMvc.perform(get("/classes/99/enrollments").param("creatorId", "1"))
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.code", is(ErrorCode.NOT_FOUND.getCode())));
+	}
+
+	@Test
+	@DisplayName("GET /classes/{id}/enrollments 는 비소유자 403")
+	void getEnrollments_forbidden_returns403() throws Exception {
+		when(lectureService.listConfirmedEnrollmentsForCreator(1L, 2L))
+				.thenThrow(new BusinessException(ErrorCode.FORBIDDEN));
+
+		mockMvc.perform(get("/classes/1/enrollments").param("creatorId", "2"))
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.code", is(ErrorCode.FORBIDDEN.getCode())));
+	}
+
+	@Test
+	@DisplayName("GET /classes/{id}/enrollments 는 creatorId 누락 시 400")
+	void getEnrollments_missingCreatorId_returns400() throws Exception {
+		mockMvc.perform(get("/classes/1/enrollments"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code", is(ErrorCode.VALIDATION_ERROR.getCode())));
+	}
+
+	@Test
+	@DisplayName("GET /classes/{id}/enrollments 는 creatorId 가 음수면 400")
+	void getEnrollments_invalidCreatorId_returns400() throws Exception {
+		mockMvc.perform(get("/classes/1/enrollments").param("creatorId", "-1"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code", is(ErrorCode.VALIDATION_ERROR.getCode())));
 	}
 
 	@Test
