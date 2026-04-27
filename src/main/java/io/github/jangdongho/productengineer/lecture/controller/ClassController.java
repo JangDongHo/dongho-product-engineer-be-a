@@ -9,6 +9,7 @@ import io.github.jangdongho.productengineer.lecture.dto.ClassListItemResponse;
 import io.github.jangdongho.productengineer.lecture.dto.ClassStatusResponse;
 import io.github.jangdongho.productengineer.lecture.dto.CreateClassRequest;
 import io.github.jangdongho.productengineer.lecture.dto.UpdateClassStatusRequest;
+import io.github.jangdongho.productengineer.enrollment.dto.ClassConfirmedEnrollmentItemResponse;
 import io.github.jangdongho.productengineer.lecture.service.LectureService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -121,6 +122,58 @@ public class ClassController {
 			@Parameter(description = "강의 ID", example = "1")
 			@PathVariable long id) {
 		return ResponseEntity.ok(ApiResponse.success(lectureService.getClassById(id)));
+	}
+
+	@Operation(
+			summary = "강의별 확정 수강생 목록",
+			description = "강의 소유자(creatorId)가 해당 강의의 CONFIRMED 수강 신청만 조회합니다. 강의가 없으면 404, 소유자가 아니면 403입니다."
+	)
+	@ApiResponses({
+			@io.swagger.v3.oas.annotations.responses.ApiResponse(
+					responseCode = "200",
+					description = "조회 성공 (확정 수강생 없으면 빈 배열)",
+					content = @Content(
+							mediaType = "application/json",
+							schema = @Schema(implementation = ApiResponse.class),
+							examples = @ExampleObject(value = """
+									{
+									  "success": true,
+									  "data": [
+									    {
+									      "enrollmentId": 1,
+									      "userId": 100,
+									      "status": "CONFIRMED",
+									      "confirmedAt": "2026-05-01T12:00:00"
+									    }
+									  ]
+									}
+									""")
+					)
+			),
+			@io.swagger.v3.oas.annotations.responses.ApiResponse(
+					responseCode = "400",
+					description = "creatorId 누락 또는 유효하지 않은 값",
+					content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
+			),
+			@io.swagger.v3.oas.annotations.responses.ApiResponse(
+					responseCode = "403",
+					description = "강의 소유자가 아님",
+					content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
+			),
+			@io.swagger.v3.oas.annotations.responses.ApiResponse(
+					responseCode = "404",
+					description = "강의를 찾을 수 없음",
+					content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
+			)
+	})
+	@GetMapping("/{id}/enrollments")
+	public ResponseEntity<ApiResponse<List<ClassConfirmedEnrollmentItemResponse>>> listConfirmedEnrollments(
+			@Parameter(description = "강의 ID", example = "1")
+			@PathVariable long id,
+			@Parameter(description = "강의 소유자(크리에이터) ID", example = "10", required = true)
+			@RequestParam("creatorId") @NotNull @Positive Long creatorId) {
+		return ResponseEntity.ok(
+				ApiResponse.success(lectureService.listConfirmedEnrollmentsForCreator(id, creatorId)));
 	}
 
 	@Operation(summary = "강의 생성", description = "크리에이터 ID와 강의 정보를 받아 강의를 DRAFT 상태로 생성합니다.")
