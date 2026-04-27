@@ -20,6 +20,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,31 +35,29 @@ public class EnrollmentService {
 	private final Clock clock;
 
 	@Transactional(readOnly = true)
-	public List<EnrollmentListItemResponse> listByUserId(long userId) {
-		List<Enrollment> enrollments = enrollmentRepository.findByUserIdOrderByCreatedAtDescIdDesc(userId);
+	public Page<EnrollmentListItemResponse> listByUserId(long userId, Pageable pageable) {
+		Page<Enrollment> enrollments = enrollmentRepository.findByUserIdOrderByCreatedAtDescIdDesc(userId, pageable);
 
-		if (enrollments.isEmpty()) {
-			return List.of();
+		if (enrollments.getContent().isEmpty()) {
+			return new PageImpl<>(List.of(), pageable, enrollments.getTotalElements());
 		}
 
-		List<Long> classIds = enrollments.stream().map(Enrollment::getClassId).distinct().toList();
+		List<Long> classIds = enrollments.getContent().stream().map(Enrollment::getClassId).distinct().toList();
 
 		Map<Long, Lecture> lectureById = lectureRepository.findAllById(classIds).stream()
 				.collect(Collectors.toMap(Lecture::getId, lecture -> lecture));
-			
-		return enrollments.stream()
-				.map(enrollment -> {
-					Lecture lecture = lectureById.get(enrollment.getClassId());
-					if (lecture == null) {
-						throw new BusinessException(ErrorCode.NOT_FOUND);
-					}
-					return new EnrollmentListItemResponse(
-							enrollment.getId(),
-							enrollment.getStatus(),
-							enrollment.getConfirmedAt(),
-							toListItem(lecture));
-				})
-				.toList();
+
+		return enrollments.map(enrollment -> {
+			Lecture lecture = lectureById.get(enrollment.getClassId());
+			if (lecture == null) {
+				throw new BusinessException(ErrorCode.NOT_FOUND);
+			}
+			return new EnrollmentListItemResponse(
+					enrollment.getId(),
+					enrollment.getStatus(),
+					enrollment.getConfirmedAt(),
+					toListItem(lecture));
+		});
 	}
 
 	@Transactional

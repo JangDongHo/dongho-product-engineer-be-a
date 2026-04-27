@@ -15,9 +15,10 @@ import io.github.jangdongho.productengineer.lecture.dto.ClassStatusResponse;
 import io.github.jangdongho.productengineer.lecture.dto.CreateClassRequest;
 import io.github.jangdongho.productengineer.lecture.repository.LectureRepository;
 
-import java.util.List;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,11 +31,11 @@ public class LectureService {
 	private final EnrollmentRepository enrollmentRepository;
 
 	@Transactional(readOnly = true)
-	public List<ClassListItemResponse> listClasses(@Nullable ClassStatus status) {
-		List<Lecture> lectures = status == null
-				? lectureRepository.findAllByOrderByCreatedAtDesc()
-				: lectureRepository.findByStatusOrderByCreatedAtDesc(status);
-		return lectures.stream().map(this::toListItem).toList();
+	public Page<ClassListItemResponse> listClasses(@Nullable ClassStatus status, Pageable pageable) {
+		Page<Lecture> lectures = status == null
+				? lectureRepository.findAllByOrderByCreatedAtDesc(pageable)
+				: lectureRepository.findByStatusOrderByCreatedAtDesc(status, pageable);
+		return lectures.map(this::toListItem);
 	}
 
 	@Transactional(readOnly = true)
@@ -45,19 +46,20 @@ public class LectureService {
 	}
 
 	@Transactional(readOnly = true)
-	public List<ClassConfirmedEnrollmentItemResponse> listConfirmedEnrollmentsForCreator(long classId, long creatorId) {
+	public Page<ClassConfirmedEnrollmentItemResponse> listConfirmedEnrollmentsForCreator(
+			long classId,
+			long creatorId,
+			Pageable pageable) {
 		Lecture lecture = lectureRepository.findById(classId)
 				.orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
 
 		if (!Objects.equals(lecture.getCreatorId(), creatorId)) {
 			throw new BusinessException(ErrorCode.FORBIDDEN);
 		}
-		
+
 		return enrollmentRepository
-				.findByClassIdAndStatusOrderByCreatedAtDescIdDesc(classId, EnrollmentStatus.CONFIRMED)
-				.stream()
-				.map(this::toClassConfirmedItem)
-				.toList();
+				.findByClassIdAndStatusOrderByCreatedAtDescIdDesc(classId, EnrollmentStatus.CONFIRMED, pageable)
+				.map(this::toClassConfirmedItem);
 	}
 
 	@Transactional
@@ -75,7 +77,7 @@ public class LectureService {
 		lecture.setCurrentEnrollment(0);
 
 		lectureRepository.save(lecture);
-		
+
 		return new ClassCreatedResponse(lecture.getId());
 	}
 
@@ -83,7 +85,7 @@ public class LectureService {
 	public ClassStatusResponse updateStatus(long id, ClassStatus targetStatus) {
 		Lecture lecture = lectureRepository.findById(id)
 				.orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
-		
+
 		ClassStatus from = lecture.getStatus();
 
 		if (!isTransitionAllowed(from, targetStatus)) {

@@ -2,6 +2,7 @@ package io.github.jangdongho.productengineer.lecture.controller;
 
 import io.github.jangdongho.productengineer.common.api.ApiResponse;
 import io.github.jangdongho.productengineer.common.api.ErrorResponse;
+import io.github.jangdongho.productengineer.common.api.PageMeta;
 import io.github.jangdongho.productengineer.lecture.domain.ClassStatus;
 import io.github.jangdongho.productengineer.lecture.dto.ClassCreatedResponse;
 import io.github.jangdongho.productengineer.lecture.dto.ClassDetailResponse;
@@ -19,10 +20,14 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -42,9 +47,13 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Classes", description = "강의 생성, 조회, 상태 변경 API")
 public class ClassController {
 
+	private static final int DEFAULT_PAGE = 0;
+	private static final int DEFAULT_SIZE = 20;
+	private static final int MAX_SIZE = 100;
+
 	private final LectureService lectureService;
 
-	@Operation(summary = "강의 목록 조회", description = "강의 목록을 ID 오름차순으로 조회합니다. status를 전달하면 해당 모집 상태로 필터링합니다.")
+	@Operation(summary = "강의 목록 조회", description = "강의 목록을 생성일 최신순으로 페이지 조회합니다. status를 전달하면 해당 모집 상태로 필터링합니다.")
 	@ApiResponses({
 			@io.swagger.v3.oas.annotations.responses.ApiResponse(
 					responseCode = "200",
@@ -66,7 +75,15 @@ public class ClassController {
 									      "startDate": "2026-05-01T10:00:00",
 									      "endDate": "2026-05-30T18:00:00"
 									    }
-									  ]
+									  ],
+									  "meta": {
+									    "page": 0,
+									    "size": 20,
+									    "totalElements": 1,
+									    "totalPages": 1,
+									    "hasNext": false,
+									    "hasPrevious": false
+									  }
 									}
 									""")
 					)
@@ -80,8 +97,13 @@ public class ClassController {
 	@GetMapping
 	public ResponseEntity<ApiResponse<List<ClassListItemResponse>>> list(
 			@Parameter(description = "강의 모집 상태 필터", example = "OPEN")
-			@RequestParam(name = "status", required = false) ClassStatus status) {
-		return ResponseEntity.ok(ApiResponse.success(lectureService.listClasses(status)));
+			@RequestParam(name = "status", required = false) ClassStatus status,
+			@Parameter(description = "페이지 번호(0부터 시작)", example = "0")
+			@RequestParam(name = "page", defaultValue = "" + DEFAULT_PAGE) @PositiveOrZero int page,
+			@Parameter(description = "페이지 크기(1~100)", example = "20")
+			@RequestParam(name = "size", defaultValue = "" + DEFAULT_SIZE) @Positive @Max(MAX_SIZE) int size) {
+		Page<ClassListItemResponse> response = lectureService.listClasses(status, PageRequest.of(page, size));
+		return ResponseEntity.ok(ApiResponse.success(response.getContent(), PageMeta.from(response)));
 	}
 
 	@Operation(summary = "강의 상세 조회", description = "강의 ID로 상세 정보를 조회합니다.")
@@ -145,7 +167,15 @@ public class ClassController {
 									      "status": "CONFIRMED",
 									      "confirmedAt": "2026-05-01T12:00:00"
 									    }
-									  ]
+									  ],
+									  "meta": {
+									    "page": 0,
+									    "size": 20,
+									    "totalElements": 1,
+									    "totalPages": 1,
+									    "hasNext": false,
+									    "hasPrevious": false
+									  }
 									}
 									""")
 					)
@@ -171,9 +201,16 @@ public class ClassController {
 			@Parameter(description = "강의 ID", example = "1")
 			@PathVariable long id,
 			@Parameter(description = "강의 소유자(크리에이터) ID", example = "10", required = true)
-			@RequestParam("creatorId") @NotNull @Positive Long creatorId) {
-		return ResponseEntity.ok(
-				ApiResponse.success(lectureService.listConfirmedEnrollmentsForCreator(id, creatorId)));
+			@RequestParam("creatorId") @NotNull @Positive Long creatorId,
+			@Parameter(description = "페이지 번호(0부터 시작)", example = "0")
+			@RequestParam(name = "page", defaultValue = "" + DEFAULT_PAGE) @PositiveOrZero int page,
+			@Parameter(description = "페이지 크기(1~100)", example = "20")
+			@RequestParam(name = "size", defaultValue = "" + DEFAULT_SIZE) @Positive @Max(MAX_SIZE) int size) {
+		Page<ClassConfirmedEnrollmentItemResponse> response = lectureService.listConfirmedEnrollmentsForCreator(
+				id,
+				creatorId,
+				PageRequest.of(page, size));
+		return ResponseEntity.ok(ApiResponse.success(response.getContent(), PageMeta.from(response)));
 	}
 
 	@Operation(summary = "강의 생성", description = "크리에이터 ID와 강의 정보를 받아 강의를 DRAFT 상태로 생성합니다.")
@@ -206,7 +243,7 @@ public class ClassController {
 			@RequestParam("creatorId") @NotNull @Positive Long creatorId,
 			@Valid @RequestBody CreateClassRequest request) {
 		ClassCreatedResponse response = lectureService.create(creatorId, request);
-		
+
 		return ResponseEntity.status(HttpStatus.CREATED)
 				.body(ApiResponse.success(response));
 	}
