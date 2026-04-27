@@ -4,11 +4,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import io.github.jangdongho.productengineer.common.exception.BusinessException;
 import io.github.jangdongho.productengineer.common.exception.ErrorCode;
+import io.github.jangdongho.productengineer.enrollment.domain.Enrollment;
+import io.github.jangdongho.productengineer.enrollment.domain.EnrollmentStatus;
+import io.github.jangdongho.productengineer.enrollment.dto.ClassConfirmedEnrollmentItemResponse;
+import io.github.jangdongho.productengineer.enrollment.repository.EnrollmentRepository;
 import io.github.jangdongho.productengineer.lecture.domain.ClassStatus;
 import io.github.jangdongho.productengineer.lecture.domain.Lecture;
 import io.github.jangdongho.productengineer.lecture.dto.ClassDetailResponse;
@@ -31,6 +36,9 @@ class LectureServiceTest {
 
 	@Mock
 	private LectureRepository lectureRepository;
+
+	@Mock
+	private EnrollmentRepository enrollmentRepository;
 
 	@InjectMocks
 	private LectureService lectureService;
@@ -126,6 +134,7 @@ class LectureServiceTest {
 
 		verify(lectureRepository).findById(eq(1L));
 		verifyNoMoreInteractions(lectureRepository);
+		verifyNoInteractions(enrollmentRepository);
 	}
 
 	@Test
@@ -148,6 +157,70 @@ class LectureServiceTest {
 		assertThatThrownBy(() -> lectureService.updateStatus(99L, ClassStatus.OPEN))
 				.isInstanceOf(BusinessException.class)
 				.satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND));
+	}
+
+	@Test
+	@DisplayName("listConfirmedEnrollmentsForCreator: 강의 없으면 NOT_FOUND, enrollmentRepository 미호출")
+	void listConfirmed_classNotFound() {
+		when(lectureRepository.findById(99L)).thenReturn(Optional.empty());
+
+		assertThatThrownBy(() -> lectureService.listConfirmedEnrollmentsForCreator(99L, 1L))
+				.isInstanceOf(BusinessException.class)
+				.satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND));
+
+		verifyNoInteractions(enrollmentRepository);
+	}
+
+	@Test
+	@DisplayName("listConfirmedEnrollmentsForCreator: 소유자 아님 FORBIDDEN, enrollmentRepository 미호출")
+	void listConfirmed_forbidden() {
+		Lecture lecture = sampleLecture(1L, ClassStatus.OPEN);
+		lecture.setCreatorId(10L);
+		when(lectureRepository.findById(1L)).thenReturn(Optional.of(lecture));
+
+		assertThatThrownBy(() -> lectureService.listConfirmedEnrollmentsForCreator(1L, 99L))
+				.isInstanceOf(BusinessException.class)
+				.satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode()).isEqualTo(ErrorCode.FORBIDDEN));
+
+		verifyNoInteractions(enrollmentRepository);
+	}
+
+	@Test
+	@DisplayName("listConfirmedEnrollmentsForCreator: 소유자·CONFIRMED 없으면 빈 목록")
+	void listConfirmed_empty() {
+		Lecture lecture = sampleLecture(5L, ClassStatus.OPEN);
+		lecture.setCreatorId(2L);
+		when(lectureRepository.findById(5L)).thenReturn(Optional.of(lecture));
+		when(enrollmentRepository.findByClassIdAndStatusOrderByCreatedAtDescIdDesc(5L, EnrollmentStatus.CONFIRMED))
+				.thenReturn(List.of());
+
+		List<ClassConfirmedEnrollmentItemResponse> result = lectureService.listConfirmedEnrollmentsForCreator(5L, 2L);
+
+		assertThat(result).isEmpty();
+	}
+
+	@Test
+	@DisplayName("listConfirmedEnrollmentsForCreator: CONFIRMED 항목을 DTO로 반환")
+	void listConfirmed_mapsRows() {
+		Lecture lecture = sampleLecture(3L, ClassStatus.OPEN);
+		lecture.setCreatorId(7L);
+		Enrollment e = new Enrollment();
+		e.setId(100L);
+		e.setUserId(20L);
+		e.setClassId(3L);
+		e.setStatus(EnrollmentStatus.CONFIRMED);
+		e.setConfirmedAt(LocalDateTime.parse("2026-06-10T15:00:00"));
+		when(lectureRepository.findById(3L)).thenReturn(Optional.of(lecture));
+		when(enrollmentRepository.findByClassIdAndStatusOrderByCreatedAtDescIdDesc(3L, EnrollmentStatus.CONFIRMED))
+				.thenReturn(List.of(e));
+
+		List<ClassConfirmedEnrollmentItemResponse> result = lectureService.listConfirmedEnrollmentsForCreator(3L, 7L);
+
+		assertThat(result).hasSize(1);
+		assertThat(result.getFirst().enrollmentId()).isEqualTo(100L);
+		assertThat(result.getFirst().userId()).isEqualTo(20L);
+		assertThat(result.getFirst().status()).isEqualTo(EnrollmentStatus.CONFIRMED);
+		assertThat(result.getFirst().confirmedAt()).isEqualTo(LocalDateTime.parse("2026-06-10T15:00:00"));
 	}
 
 	private static Lecture sampleLecture(long id, ClassStatus status) {

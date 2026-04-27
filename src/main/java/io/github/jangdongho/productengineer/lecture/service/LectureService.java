@@ -2,6 +2,10 @@ package io.github.jangdongho.productengineer.lecture.service;
 
 import io.github.jangdongho.productengineer.common.exception.BusinessException;
 import io.github.jangdongho.productengineer.common.exception.ErrorCode;
+import io.github.jangdongho.productengineer.enrollment.domain.Enrollment;
+import io.github.jangdongho.productengineer.enrollment.domain.EnrollmentStatus;
+import io.github.jangdongho.productengineer.enrollment.dto.ClassConfirmedEnrollmentItemResponse;
+import io.github.jangdongho.productengineer.enrollment.repository.EnrollmentRepository;
 import io.github.jangdongho.productengineer.lecture.domain.ClassStatus;
 import io.github.jangdongho.productengineer.lecture.domain.Lecture;
 import io.github.jangdongho.productengineer.lecture.dto.ClassCreatedResponse;
@@ -12,6 +16,7 @@ import io.github.jangdongho.productengineer.lecture.dto.CreateClassRequest;
 import io.github.jangdongho.productengineer.lecture.repository.LectureRepository;
 
 import java.util.List;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
@@ -22,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class LectureService {
 
 	private final LectureRepository lectureRepository;
+	private final EnrollmentRepository enrollmentRepository;
 
 	@Transactional(readOnly = true)
 	public List<ClassListItemResponse> listClasses(@Nullable ClassStatus status) {
@@ -36,6 +42,22 @@ public class LectureService {
 		Lecture lecture = lectureRepository.findById(id)
 				.orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
 		return toDetail(lecture);
+	}
+
+	@Transactional(readOnly = true)
+	public List<ClassConfirmedEnrollmentItemResponse> listConfirmedEnrollmentsForCreator(long classId, long creatorId) {
+		Lecture lecture = lectureRepository.findById(classId)
+				.orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+
+		if (!Objects.equals(lecture.getCreatorId(), creatorId)) {
+			throw new BusinessException(ErrorCode.FORBIDDEN);
+		}
+		
+		return enrollmentRepository
+				.findByClassIdAndStatusOrderByCreatedAtDescIdDesc(classId, EnrollmentStatus.CONFIRMED)
+				.stream()
+				.map(this::toClassConfirmedItem)
+				.toList();
 	}
 
 	@Transactional
@@ -102,5 +124,13 @@ public class LectureService {
 				lecture.getCurrentEnrollment(),
 				lecture.getStartDate(),
 				lecture.getEndDate());
+	}
+
+	private ClassConfirmedEnrollmentItemResponse toClassConfirmedItem(Enrollment e) {
+		return new ClassConfirmedEnrollmentItemResponse(
+				e.getId(),
+				e.getUserId(),
+				e.getStatus(),
+				e.getConfirmedAt());
 	}
 }

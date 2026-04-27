@@ -203,15 +203,15 @@
 
 ### Story 5-1. 강의별 수강생 목록 조회 (크리에이터 전용)
 
-- [ ] **Task** `GET /classes/{id}/enrollments` API 구현
+- [x] **Task** `GET /classes/{id}/enrollments` API 구현
   - `CONFIRMED` 상태 수강생만 반환
-- [ ] **Task** 크리에이터 소유권 검증
+- [x] **Task** 크리에이터 소유권 검증
   - 요청한 `creatorId`가 강의 소유자인지 확인 → 아니면 403 Forbidden
-- [ ] **Task** 단위 테스트 작성
+- [x] **Task** 단위 테스트 작성
 
 ### Story 5-2. 신청 내역 페이지네이션
 
-- [ ] **Task** 내 수강 신청 목록 API에 페이지네이션 적용
+- [ ] **Task** 페이지네이션 적용 (내 수강 신청 목록, 강의 목록 조회, 강의별 확정 수강생 목록 API)
   - Cursor 기반 또는 Offset 기반 결정
   - Query Param: `page`, `size` (또는 `cursor`, `size`)
 
