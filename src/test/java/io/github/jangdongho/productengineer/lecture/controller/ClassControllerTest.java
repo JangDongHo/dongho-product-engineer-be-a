@@ -14,7 +14,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import io.github.jangdongho.productengineer.common.exception.BusinessException;
 import io.github.jangdongho.productengineer.common.exception.ErrorCode;
 import io.github.jangdongho.productengineer.common.exception.GlobalExceptionHandler;
-import io.github.jangdongho.productengineer.lecture.controller.ClassController;
 import io.github.jangdongho.productengineer.lecture.domain.ClassStatus;
 import io.github.jangdongho.productengineer.lecture.dto.ClassCreatedResponse;
 import io.github.jangdongho.productengineer.lecture.dto.ClassDetailResponse;

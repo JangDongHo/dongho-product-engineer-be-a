@@ -19,7 +19,6 @@ import io.github.jangdongho.productengineer.enrollment.dto.EnrollmentConfirmedRe
 import io.github.jangdongho.productengineer.enrollment.dto.EnrollmentCreatedResponse;
 import io.github.jangdongho.productengineer.enrollment.dto.EnrollmentListItemResponse;
 import io.github.jangdongho.productengineer.enrollment.repository.EnrollmentRepository;
-import io.github.jangdongho.productengineer.enrollment.service.EnrollmentService;
 import io.github.jangdongho.productengineer.lecture.domain.ClassStatus;
 import io.github.jangdongho.productengineer.lecture.domain.Lecture;
 import io.github.jangdongho.productengineer.lecture.repository.LectureRepository;

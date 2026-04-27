@@ -15,7 +15,6 @@ import io.github.jangdongho.productengineer.lecture.dto.ClassDetailResponse;
 import io.github.jangdongho.productengineer.lecture.dto.ClassListItemResponse;
 import io.github.jangdongho.productengineer.lecture.dto.ClassStatusResponse;
 import io.github.jangdongho.productengineer.lecture.repository.LectureRepository;
-import io.github.jangdongho.productengineer.lecture.service.LectureService;
 
 import java.time.LocalDateTime;
 import java.util.List;

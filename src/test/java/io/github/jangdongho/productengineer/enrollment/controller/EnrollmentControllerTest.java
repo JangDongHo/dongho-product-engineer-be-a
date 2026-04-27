@@ -13,7 +13,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import io.github.jangdongho.productengineer.common.exception.BusinessException;
 import io.github.jangdongho.productengineer.common.exception.ErrorCode;
 import io.github.jangdongho.productengineer.common.exception.GlobalExceptionHandler;
-import io.github.jangdongho.productengineer.enrollment.controller.EnrollmentController;
 import io.github.jangdongho.productengineer.enrollment.domain.EnrollmentStatus;
 import io.github.jangdongho.productengineer.enrollment.dto.EnrollmentCancelledResponse;
 import io.github.jangdongho.productengineer.enrollment.dto.EnrollmentConfirmedResponse;
