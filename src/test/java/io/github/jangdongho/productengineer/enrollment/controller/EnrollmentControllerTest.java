@@ -192,6 +192,17 @@ class EnrollmentControllerTest {
 	}
 
 	@Test
+	@DisplayName("GET /enrollments 는 page 가 상한(10000) 초과면 400 을 반환한다")
+	void list_pageExceedsMax_returns400() throws Exception {
+		mockMvc.perform(get("/enrollments")
+						.param("userId", "1")
+						.param("page", "10001")
+						.param("size", "20"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code", is(ErrorCode.VALIDATION_ERROR.getCode())));
+	}
+
+	@Test
 	@DisplayName("GET /enrollments?userId= 는 데이터 불일치 시 404 를 반환한다")
 	void list_lectureMissing_returns404() throws Exception {
 		when(enrollmentService.listByUserId(1L, PageRequest.of(0, 20)))

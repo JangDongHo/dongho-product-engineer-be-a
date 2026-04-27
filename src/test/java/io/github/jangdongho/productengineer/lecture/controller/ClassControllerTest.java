@@ -102,6 +102,16 @@ class ClassControllerTest {
 	}
 
 	@Test
+	@DisplayName("GET /classes 는 page 가 상한(10000) 초과면 400 을 반환한다")
+	void getList_pageExceedsMax_returns400() throws Exception {
+		mockMvc.perform(get("/classes")
+						.param("page", "10001")
+						.param("size", "20"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code", is(ErrorCode.VALIDATION_ERROR.getCode())));
+	}
+
+	@Test
 	@DisplayName("GET /classes/{id} 는 상세와 currentEnrollment 를 반환한다")
 	void getById_returnsDetail() throws Exception {
 		ClassDetailResponse body = new ClassDetailResponse(
@@ -205,6 +215,17 @@ class ClassControllerTest {
 						.param("creatorId", "1")
 						.param("page", "-1")
 						.param("size", "101"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code", is(ErrorCode.VALIDATION_ERROR.getCode())));
+	}
+
+	@Test
+	@DisplayName("GET /classes/{id}/enrollments 는 page 가 상한(10000) 초과면 400")
+	void getEnrollments_pageExceedsMax_returns400() throws Exception {
+		mockMvc.perform(get("/classes/1/enrollments")
+						.param("creatorId", "1")
+						.param("page", "10001")
+						.param("size", "20"))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.code", is(ErrorCode.VALIDATION_ERROR.getCode())));
 	}
