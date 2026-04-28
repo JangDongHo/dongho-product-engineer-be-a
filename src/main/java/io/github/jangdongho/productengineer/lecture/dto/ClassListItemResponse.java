@@ -7,39 +7,23 @@ import java.time.LocalDateTime;
 
 @Schema(description = "강의 목록 항목 응답")
 public record ClassListItemResponse(
-		@Schema(description = "강의 ID", example = "1")
-		Long id,
-
-		@Schema(description = "크리에이터 ID", example = "10")
-		Long creatorId,
-
-		@Schema(description = "강의 제목", example = "Spring Boot 실전 클래스")
-		String title,
-
-		@Schema(description = "강의 모집 상태", example = "OPEN")
-		ClassStatus status,
-
-		@Schema(description = "수강료. KRW 원 단위 정수", example = "10000")
-		long price,
-
-		@Schema(description = "모집 정원", example = "30")
-		int capacity,
-
-		@Schema(description = "강의 시작 일시", example = "2026-05-01T10:00:00")
-		LocalDateTime startDate,
-
-		@Schema(description = "강의 종료 일시", example = "2026-05-30T18:00:00")
-		LocalDateTime endDate
-) {
-	public static ClassListItemResponse from(Lecture lecture) {
-		return new ClassListItemResponse(
-				lecture.getId(),
-				lecture.getCreatorId(),
-				lecture.getTitle(),
-				lecture.getStatus(),
-				lecture.getPrice(),
-				lecture.getCapacity(),
-				lecture.getStartDate(),
-				lecture.getEndDate());
-	}
+    @Schema(description = "강의 ID", example = "1") Long id,
+    @Schema(description = "크리에이터 ID", example = "10") Long creatorId,
+    @Schema(description = "강의 제목", example = "Spring Boot 실전 클래스") String title,
+    @Schema(description = "강의 모집 상태", example = "OPEN") ClassStatus status,
+    @Schema(description = "수강료. KRW 원 단위 정수", example = "10000") long price,
+    @Schema(description = "모집 정원", example = "30") int capacity,
+    @Schema(description = "강의 시작 일시", example = "2026-05-01T10:00:00") LocalDateTime startDate,
+    @Schema(description = "강의 종료 일시", example = "2026-05-30T18:00:00") LocalDateTime endDate) {
+  public static ClassListItemResponse from(Lecture lecture) {
+    return new ClassListItemResponse(
+        lecture.getId(),
+        lecture.getCreatorId(),
+        lecture.getTitle(),
+        lecture.getStatus(),
+        lecture.getPrice(),
+        lecture.getCapacity(),
+        lecture.getStartDate(),
+        lecture.getEndDate());
+  }
 }

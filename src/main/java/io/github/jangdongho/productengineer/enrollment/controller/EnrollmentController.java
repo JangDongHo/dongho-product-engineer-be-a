@@ -44,24 +44,28 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Enrollments", description = "수강 신청 API")
 public class EnrollmentController {
 
-	private static final int DEFAULT_PAGE = 0;
-	private static final int DEFAULT_SIZE = 20;
-	private static final int MAX_PAGE = 10_000;
-	private static final int MAX_SIZE = 100;
+  private static final int DEFAULT_PAGE = 0;
+  private static final int DEFAULT_SIZE = 20;
+  private static final int MAX_PAGE = 10_000;
+  private static final int MAX_SIZE = 100;
 
-	private final EnrollmentService enrollmentService;
+  private final EnrollmentService enrollmentService;
 
-	@Operation(
-			summary = "내 수강 신청 목록",
-			description = "특정 사용자의 수강 신청을 생성일 최신순으로 페이지 조회합니다. 각 항목에 강의 요약(강의 목록 항목과 동일)과 신청 상태가 포함됩니다.")
-	@ApiResponses({
-			@io.swagger.v3.oas.annotations.responses.ApiResponse(
-					responseCode = "200",
-					description = "조회 성공 (신청이 없으면 빈 배열)",
-					content = @Content(
-							mediaType = "application/json",
-							schema = @Schema(implementation = ApiResponse.class),
-							examples = @ExampleObject(value = """
+  @Operation(
+      summary = "내 수강 신청 목록",
+      description = "특정 사용자의 수강 신청을 생성일 최신순으로 페이지 조회합니다. 각 항목에 강의 요약(강의 목록 항목과 동일)과 신청 상태가 포함됩니다.")
+  @ApiResponses({
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        responseCode = "200",
+        description = "조회 성공 (신청이 없으면 빈 배열)",
+        content =
+            @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ApiResponse.class),
+                examples =
+                    @ExampleObject(
+                        value =
+                            """
 									{
 									  "success": true,
 									  "data": [
@@ -90,41 +94,59 @@ public class EnrollmentController {
 									    "hasPrevious": false
 									  }
 									}
-									""")
-					)
-			),
-			@io.swagger.v3.oas.annotations.responses.ApiResponse(
-					responseCode = "400",
-					description = "userId 누락·양수가 아님",
-					content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
-			),
-			@io.swagger.v3.oas.annotations.responses.ApiResponse(
-					responseCode = "404",
-					description = "수강이 참조하는 강의가 없음(데이터 불일치)",
-					content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
-			)
-	})
-	@GetMapping
-	public ResponseEntity<ApiResponse<List<EnrollmentListItemResponse>>> list(
-			@Parameter(description = "사용자 ID", example = "1", required = true)
-			@RequestParam @NotNull @Positive Long userId,
-			@Parameter(description = "페이지 번호(0~10000)", example = "0")
-			@RequestParam(defaultValue = "" + DEFAULT_PAGE) @PositiveOrZero @Max(MAX_PAGE) int page,
-			@Parameter(description = "페이지 크기(1~100)", example = "20")
-			@RequestParam(defaultValue = "" + DEFAULT_SIZE) @Positive @Max(MAX_SIZE) int size) {
-		Page<EnrollmentListItemResponse> response = enrollmentService.listByUserId(userId, PageRequest.of(page, size));
-		return ResponseEntity.ok(ApiResponse.success(response.getContent(), PageMeta.from(response)));
-	}
+									"""))),
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        responseCode = "400",
+        description = "userId 누락·양수가 아님",
+        content =
+            @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorResponse.class))),
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        responseCode = "404",
+        description = "수강이 참조하는 강의가 없음(데이터 불일치)",
+        content =
+            @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorResponse.class)))
+  })
+  @GetMapping
+  public ResponseEntity<ApiResponse<List<EnrollmentListItemResponse>>> list(
+      @Parameter(description = "사용자 ID", example = "1", required = true)
+          @RequestParam
+          @NotNull
+          @Positive
+          Long userId,
+      @Parameter(description = "페이지 번호(0~10000)", example = "0")
+          @RequestParam(defaultValue = "" + DEFAULT_PAGE)
+          @PositiveOrZero
+          @Max(MAX_PAGE)
+          int page,
+      @Parameter(description = "페이지 크기(1~100)", example = "20")
+          @RequestParam(defaultValue = "" + DEFAULT_SIZE)
+          @Positive
+          @Max(MAX_SIZE)
+          int size) {
+    Page<EnrollmentListItemResponse> response =
+        enrollmentService.listByUserId(userId, PageRequest.of(page, size));
+    return ResponseEntity.ok(ApiResponse.success(response.getContent(), PageMeta.from(response)));
+  }
 
-	@Operation(summary = "수강 신청", description = "모집 중인 강의에 수강 신청을 등록합니다. 상태는 PENDING이며, 신청 시점에 정원(currentEnrollment)이 반영됩니다.")
-	@ApiResponses({
-			@io.swagger.v3.oas.annotations.responses.ApiResponse(
-					responseCode = "201",
-					description = "수강 신청 성공",
-					content = @Content(
-							mediaType = "application/json",
-							schema = @Schema(implementation = ApiResponse.class),
-							examples = @ExampleObject(value = """
+  @Operation(
+      summary = "수강 신청",
+      description = "모집 중인 강의에 수강 신청을 등록합니다. 상태는 PENDING이며, 신청 시점에 정원(currentEnrollment)이 반영됩니다.")
+  @ApiResponses({
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        responseCode = "201",
+        description = "수강 신청 성공",
+        content =
+            @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ApiResponse.class),
+                examples =
+                    @ExampleObject(
+                        value =
+                            """
 									{
 									  "success": true,
 									  "data": {
@@ -132,42 +154,53 @@ public class EnrollmentController {
 									    "status": "PENDING"
 									  }
 									}
-									""")
-					)
-			),
-			@io.swagger.v3.oas.annotations.responses.ApiResponse(
-					responseCode = "400",
-					description = "입력 검증 실패 또는 모집 중이 아닌 강의",
-					content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
-			),
-			@io.swagger.v3.oas.annotations.responses.ApiResponse(
-					responseCode = "404",
-					description = "강의를 찾을 수 없음",
-					content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
-			),
-			@io.swagger.v3.oas.annotations.responses.ApiResponse(
-					responseCode = "409",
-					description = "정원 마감 또는 중복 신청",
-					content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
-			)
-	})
-	@PostMapping
-	public ResponseEntity<ApiResponse<EnrollmentCreatedResponse>> enroll(@Valid @RequestBody CreateEnrollmentRequest request) {
-		EnrollmentCreatedResponse response = enrollmentService.enroll(request.getUserId(), request.getClassId());
-		return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
-	}
+									"""))),
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        responseCode = "400",
+        description = "입력 검증 실패 또는 모집 중이 아닌 강의",
+        content =
+            @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorResponse.class))),
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        responseCode = "404",
+        description = "강의를 찾을 수 없음",
+        content =
+            @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorResponse.class))),
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        responseCode = "409",
+        description = "정원 마감 또는 중복 신청",
+        content =
+            @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorResponse.class)))
+  })
+  @PostMapping
+  public ResponseEntity<ApiResponse<EnrollmentCreatedResponse>> enroll(
+      @Valid @RequestBody CreateEnrollmentRequest request) {
+    EnrollmentCreatedResponse response =
+        enrollmentService.enroll(request.getUserId(), request.getClassId());
+    return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
+  }
 
-	@Operation(
-			summary = "결제 확정",
-			description = "PENDING 수강 신청을 CONFIRMED로 전이하고 결제 확정 시각을 기록합니다. 정원(currentEnrollment)은 신청 시 이미 반영되므로 변경하지 않습니다.")
-	@ApiResponses({
-			@io.swagger.v3.oas.annotations.responses.ApiResponse(
-					responseCode = "200",
-					description = "결제 확정 성공",
-					content = @Content(
-							mediaType = "application/json",
-							schema = @Schema(implementation = ApiResponse.class),
-							examples = @ExampleObject(value = """
+  @Operation(
+      summary = "결제 확정",
+      description =
+          "PENDING 수강 신청을 CONFIRMED로 전이하고 결제 확정 시각을 기록합니다. 정원(currentEnrollment)은 신청 시 이미 반영되므로 변경하지 않습니다.")
+  @ApiResponses({
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        responseCode = "200",
+        description = "결제 확정 성공",
+        content =
+            @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ApiResponse.class),
+                examples =
+                    @ExampleObject(
+                        value =
+                            """
 									{
 									  "success": true,
 									  "data": {
@@ -176,39 +209,45 @@ public class EnrollmentController {
 									    "confirmedAt": "2026-05-01T12:00:00"
 									  }
 									}
-									""")
-					)
-			),
-			@io.swagger.v3.oas.annotations.responses.ApiResponse(
-					responseCode = "400",
-					description = "PENDING이 아닌 신청에 대한 확정 시도",
-					content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
-			),
-			@io.swagger.v3.oas.annotations.responses.ApiResponse(
-					responseCode = "404",
-					description = "수강 신청을 찾을 수 없음",
-					content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
-			)
-	})
-	@PatchMapping("/{id}/confirm")
-	public ResponseEntity<ApiResponse<EnrollmentConfirmedResponse>> confirm(
-			@Parameter(description = "수강 신청 ID", example = "1")
-			@PathVariable long id) {
-		EnrollmentConfirmedResponse response = enrollmentService.confirm(id);
-		return ResponseEntity.ok(ApiResponse.success(response));
-	}
+									"""))),
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        responseCode = "400",
+        description = "PENDING이 아닌 신청에 대한 확정 시도",
+        content =
+            @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorResponse.class))),
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        responseCode = "404",
+        description = "수강 신청을 찾을 수 없음",
+        content =
+            @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorResponse.class)))
+  })
+  @PatchMapping("/{id}/confirm")
+  public ResponseEntity<ApiResponse<EnrollmentConfirmedResponse>> confirm(
+      @Parameter(description = "수강 신청 ID", example = "1") @PathVariable long id) {
+    EnrollmentConfirmedResponse response = enrollmentService.confirm(id);
+    return ResponseEntity.ok(ApiResponse.success(response));
+  }
 
-	@Operation(
-			summary = "수강 취소",
-			description = "PENDING은 제한 없이 취소합니다. CONFIRMED는 결제 확정 시각(confirmedAt) 기준 7일 이내에만 취소할 수 있습니다. 성공 시 강의 정원(currentEnrollment)이 1 감소합니다.")
-	@ApiResponses({
-			@io.swagger.v3.oas.annotations.responses.ApiResponse(
-					responseCode = "200",
-					description = "취소 성공",
-					content = @Content(
-							mediaType = "application/json",
-							schema = @Schema(implementation = ApiResponse.class),
-							examples = @ExampleObject(value = """
+  @Operation(
+      summary = "수강 취소",
+      description =
+          "PENDING은 제한 없이 취소합니다. CONFIRMED는 결제 확정 시각(confirmedAt) 기준 7일 이내에만 취소할 수 있습니다. 성공 시 강의 정원(currentEnrollment)이 1 감소합니다.")
+  @ApiResponses({
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        responseCode = "200",
+        description = "취소 성공",
+        content =
+            @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ApiResponse.class),
+                examples =
+                    @ExampleObject(
+                        value =
+                            """
 									{
 									  "success": true,
 									  "data": {
@@ -216,25 +255,26 @@ public class EnrollmentController {
 									    "status": "CANCELLED"
 									  }
 									}
-									""")
-					)
-			),
-			@io.swagger.v3.oas.annotations.responses.ApiResponse(
-					responseCode = "400",
-					description = "이미 취소됨, 확정 후 7일 초과 등 취소 불가",
-					content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
-			),
-			@io.swagger.v3.oas.annotations.responses.ApiResponse(
-					responseCode = "404",
-					description = "수강 신청 또는 강의를 찾을 수 없음",
-					content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
-			)
-	})
-	@PatchMapping("/{id}/cancel")
-	public ResponseEntity<ApiResponse<EnrollmentCancelledResponse>> cancel(
-			@Parameter(description = "수강 신청 ID", example = "1")
-			@PathVariable long id) {
-		EnrollmentCancelledResponse response = enrollmentService.cancel(id);
-		return ResponseEntity.ok(ApiResponse.success(response));
-	}
+									"""))),
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        responseCode = "400",
+        description = "이미 취소됨, 확정 후 7일 초과 등 취소 불가",
+        content =
+            @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorResponse.class))),
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        responseCode = "404",
+        description = "수강 신청 또는 강의를 찾을 수 없음",
+        content =
+            @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorResponse.class)))
+  })
+  @PatchMapping("/{id}/cancel")
+  public ResponseEntity<ApiResponse<EnrollmentCancelledResponse>> cancel(
+      @Parameter(description = "수강 신청 ID", example = "1") @PathVariable long id) {
+    EnrollmentCancelledResponse response = enrollmentService.cancel(id);
+    return ResponseEntity.ok(ApiResponse.success(response));
+  }
 }

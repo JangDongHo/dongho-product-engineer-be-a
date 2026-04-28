@@ -13,13 +13,13 @@ import lombok.Setter;
 @Schema(description = "수강 신청 요청")
 public class CreateEnrollmentRequest {
 
-	@Schema(description = "신청 사용자 ID", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
-	@NotNull
-	@Positive
-	private Long userId;
+  @Schema(description = "신청 사용자 ID", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
+  @NotNull
+  @Positive
+  private Long userId;
 
-	@Schema(description = "강의 ID", example = "10", requiredMode = Schema.RequiredMode.REQUIRED)
-	@NotNull
-	@Positive
-	private Long classId;
+  @Schema(description = "강의 ID", example = "10", requiredMode = Schema.RequiredMode.REQUIRED)
+  @NotNull
+  @Positive
+  private Long classId;
 }

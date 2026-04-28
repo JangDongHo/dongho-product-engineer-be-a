@@ -13,7 +13,6 @@ import io.github.jangdongho.productengineer.lecture.domain.ClassStatus;
 import io.github.jangdongho.productengineer.lecture.domain.Lecture;
 import io.github.jangdongho.productengineer.lecture.dto.ClassListItemResponse;
 import io.github.jangdongho.productengineer.lecture.repository.LectureRepository;
-
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -30,110 +29,123 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class EnrollmentService {
 
-	private final LectureRepository lectureRepository;
-	private final EnrollmentRepository enrollmentRepository;
-	private final Clock clock;
+  private final LectureRepository lectureRepository;
+  private final EnrollmentRepository enrollmentRepository;
+  private final Clock clock;
 
-	@Transactional(readOnly = true)
-	public Page<EnrollmentListItemResponse> listByUserId(long userId, Pageable pageable) {
-		Page<Enrollment> enrollments = enrollmentRepository.findByUserIdOrderByCreatedAtDescIdDesc(userId, pageable);
+  @Transactional(readOnly = true)
+  public Page<EnrollmentListItemResponse> listByUserId(long userId, Pageable pageable) {
+    Page<Enrollment> enrollments =
+        enrollmentRepository.findByUserIdOrderByCreatedAtDescIdDesc(userId, pageable);
 
-		if (enrollments.getContent().isEmpty()) {
-			return new PageImpl<>(List.of(), pageable, enrollments.getTotalElements());
-		}
+    if (enrollments.getContent().isEmpty()) {
+      return new PageImpl<>(List.of(), pageable, enrollments.getTotalElements());
+    }
 
-		List<Long> classIds = enrollments.getContent().stream().map(Enrollment::getClassId).distinct().toList();
+    List<Long> classIds =
+        enrollments.getContent().stream().map(Enrollment::getClassId).distinct().toList();
 
-		Map<Long, Lecture> lectureById = lectureRepository.findAllById(classIds).stream()
-				.collect(Collectors.toMap(Lecture::getId, lecture -> lecture));
+    Map<Long, Lecture> lectureById =
+        lectureRepository.findAllById(classIds).stream()
+            .collect(Collectors.toMap(Lecture::getId, lecture -> lecture));
 
-		return enrollments.map(enrollment -> {
-			Lecture lecture = lectureById.get(enrollment.getClassId());
-			if (lecture == null) {
-				throw new BusinessException(ErrorCode.NOT_FOUND);
-			}
-			return new EnrollmentListItemResponse(
-					enrollment.getId(),
-					enrollment.getStatus(),
-					enrollment.getConfirmedAt(),
-					ClassListItemResponse.from(lecture));
-		});
-	}
+    return enrollments.map(
+        enrollment -> {
+          Lecture lecture = lectureById.get(enrollment.getClassId());
+          if (lecture == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND);
+          }
+          return new EnrollmentListItemResponse(
+              enrollment.getId(),
+              enrollment.getStatus(),
+              enrollment.getConfirmedAt(),
+              ClassListItemResponse.from(lecture));
+        });
+  }
 
-	@Transactional
-	public EnrollmentCreatedResponse enroll(long userId, long classId) {
-		Lecture lecture = lectureRepository.findByIdForUpdate(classId)
-				.orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+  @Transactional
+  public EnrollmentCreatedResponse enroll(long userId, long classId) {
+    Lecture lecture =
+        lectureRepository
+            .findByIdForUpdate(classId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
 
-		if (lecture.getStatus() != ClassStatus.OPEN) {
-			throw new BusinessException(ErrorCode.VALIDATION_ERROR, "모집 중인 강의만 신청할 수 있습니다.");
-		}
+    if (lecture.getStatus() != ClassStatus.OPEN) {
+      throw new BusinessException(ErrorCode.VALIDATION_ERROR, "모집 중인 강의만 신청할 수 있습니다.");
+    }
 
-		if (lecture.getCurrentEnrollment() >= lecture.getCapacity()) {
-			throw new BusinessException(ErrorCode.CONFLICT, "정원이 마감되었습니다.");
-		}
+    if (lecture.getCurrentEnrollment() >= lecture.getCapacity()) {
+      throw new BusinessException(ErrorCode.CONFLICT, "정원이 마감되었습니다.");
+    }
 
-		if (enrollmentRepository.existsByUserIdAndClassId(userId, classId)) {
-			throw new BusinessException(ErrorCode.CONFLICT, "이미 신청한 강의입니다.");
-		}
+    if (enrollmentRepository.existsByUserIdAndClassId(userId, classId)) {
+      throw new BusinessException(ErrorCode.CONFLICT, "이미 신청한 강의입니다.");
+    }
 
-		lecture.setCurrentEnrollment(lecture.getCurrentEnrollment() + 1);
-		lectureRepository.save(lecture);
+    lecture.setCurrentEnrollment(lecture.getCurrentEnrollment() + 1);
+    lectureRepository.save(lecture);
 
-		Enrollment enrollment = new Enrollment();
-		enrollment.setUserId(userId);
-		enrollment.setClassId(classId);
-		enrollment.setStatus(EnrollmentStatus.PENDING);
-		enrollmentRepository.save(enrollment);
+    Enrollment enrollment = new Enrollment();
+    enrollment.setUserId(userId);
+    enrollment.setClassId(classId);
+    enrollment.setStatus(EnrollmentStatus.PENDING);
+    enrollmentRepository.save(enrollment);
 
-		return new EnrollmentCreatedResponse(enrollment.getId(), enrollment.getStatus());
-	}
+    return new EnrollmentCreatedResponse(enrollment.getId(), enrollment.getStatus());
+  }
 
-	@Transactional
-	public EnrollmentConfirmedResponse confirm(long enrollmentId) {
-		Enrollment enrollment = enrollmentRepository.findById(enrollmentId)
-				.orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+  @Transactional
+  public EnrollmentConfirmedResponse confirm(long enrollmentId) {
+    Enrollment enrollment =
+        enrollmentRepository
+            .findById(enrollmentId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
 
-		if (enrollment.getStatus() != EnrollmentStatus.PENDING) {
-			throw new BusinessException(ErrorCode.VALIDATION_ERROR, "결제 대기(PENDING) 상태의 신청만 확정할 수 있습니다.");
-		}
+    if (enrollment.getStatus() != EnrollmentStatus.PENDING) {
+      throw new BusinessException(ErrorCode.VALIDATION_ERROR, "결제 대기(PENDING) 상태의 신청만 확정할 수 있습니다.");
+    }
 
-		enrollment.setStatus(EnrollmentStatus.CONFIRMED);
-		enrollment.setConfirmedAt(LocalDateTime.now(clock));
-		enrollmentRepository.save(enrollment);
+    enrollment.setStatus(EnrollmentStatus.CONFIRMED);
+    enrollment.setConfirmedAt(LocalDateTime.now(clock));
+    enrollmentRepository.save(enrollment);
 
-		return new EnrollmentConfirmedResponse(enrollment.getId(), enrollment.getStatus(), enrollment.getConfirmedAt());
-	}
+    return new EnrollmentConfirmedResponse(
+        enrollment.getId(), enrollment.getStatus(), enrollment.getConfirmedAt());
+  }
 
-	@Transactional
-	public EnrollmentCancelledResponse cancel(long enrollmentId) {
-		Enrollment enrollment = enrollmentRepository.findById(enrollmentId)
-				.orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+  @Transactional
+  public EnrollmentCancelledResponse cancel(long enrollmentId) {
+    Enrollment enrollment =
+        enrollmentRepository
+            .findById(enrollmentId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
 
-		if (enrollment.getStatus() == EnrollmentStatus.CANCELLED) {
-			throw new BusinessException(ErrorCode.VALIDATION_ERROR, "이미 취소된 수강 신청입니다.");
-		}
+    if (enrollment.getStatus() == EnrollmentStatus.CANCELLED) {
+      throw new BusinessException(ErrorCode.VALIDATION_ERROR, "이미 취소된 수강 신청입니다.");
+    }
 
-		LocalDateTime now = LocalDateTime.now(clock);
-		if (enrollment.getStatus() == EnrollmentStatus.CONFIRMED) {
-			LocalDateTime confirmedAt = enrollment.getConfirmedAt();
-			if (confirmedAt == null) {
-				throw new BusinessException(ErrorCode.VALIDATION_ERROR, "확정 시각이 없어 취소할 수 없습니다.");
-			}
-			LocalDateTime deadline = confirmedAt.plusDays(7);
-			if (now.isAfter(deadline)) {
-				throw new BusinessException(ErrorCode.VALIDATION_ERROR, "결제 확정 후 7일이 지나 취소할 수 없습니다.");
-			}
-		}
+    LocalDateTime now = LocalDateTime.now(clock);
+    if (enrollment.getStatus() == EnrollmentStatus.CONFIRMED) {
+      LocalDateTime confirmedAt = enrollment.getConfirmedAt();
+      if (confirmedAt == null) {
+        throw new BusinessException(ErrorCode.VALIDATION_ERROR, "확정 시각이 없어 취소할 수 없습니다.");
+      }
+      LocalDateTime deadline = confirmedAt.plusDays(7);
+      if (now.isAfter(deadline)) {
+        throw new BusinessException(ErrorCode.VALIDATION_ERROR, "결제 확정 후 7일이 지나 취소할 수 없습니다.");
+      }
+    }
 
-		Lecture lecture = lectureRepository.findByIdForUpdate(enrollment.getClassId())
-				.orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
-		lecture.setCurrentEnrollment(lecture.getCurrentEnrollment() - 1);
-		lectureRepository.save(lecture);
+    Lecture lecture =
+        lectureRepository
+            .findByIdForUpdate(enrollment.getClassId())
+            .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    lecture.setCurrentEnrollment(lecture.getCurrentEnrollment() - 1);
+    lectureRepository.save(lecture);
 
-		enrollment.setStatus(EnrollmentStatus.CANCELLED);
-		enrollmentRepository.save(enrollment);
+    enrollment.setStatus(EnrollmentStatus.CANCELLED);
+    enrollmentRepository.save(enrollment);
 
-		return new EnrollmentCancelledResponse(enrollment.getId(), enrollment.getStatus());
-	}
+    return new EnrollmentCancelledResponse(enrollment.getId(), enrollment.getStatus());
+  }
 }
