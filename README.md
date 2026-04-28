@@ -157,8 +157,8 @@ stateDiagram-v2
 <img width="494" height="410" alt="image" src="https://github.com/user-attachments/assets/a7888be9-9607-4957-bcf9-0d22e4e4e448" />
 
 - 각 테이블의 PK는 Auto Increment 방식을 사용했습니다.
-- 수강 신청 테이블의 `lecture_id` 컬럼은 강의 테이블을 참조하는 FK입니다.
-- 같은 수강생이 같은 강의를 중복 신청하지 못하도록 (`lecture_id`, `user_id`) 에 유니크 제약 조건을 두었습니다.
+- 수강 신청 테이블의 `class_id` 컬럼은 강의 테이블을 참조하는 FK입니다.
+- 같은 수강생이 같은 강의를 중복 신청하지 못하도록 (`class_id`, `user_id`) 에 유니크 제약 조건을 두었습니다.
 - 사용자별 신청 내역을 최신순으로 조회할 수 있도록 수강 신청 테이블에 `user_id,created_at,id` 복합 인덱스를 추가했습니다.
 
 ---
