@@ -1,5 +1,6 @@
 package io.github.jangdongho.productengineer.enrollment.dto;
 
+import io.github.jangdongho.productengineer.enrollment.domain.Enrollment;
 import io.github.jangdongho.productengineer.enrollment.domain.EnrollmentStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
@@ -16,5 +17,13 @@ public record ClassConfirmedEnrollmentItemResponse(
 		EnrollmentStatus status,
 
 		@Schema(description = "결제 확정 시각", example = "2026-05-01T12:00:00")
-		LocalDateTime confirmedAt) {
+		LocalDateTime confirmedAt
+) {
+	public static ClassConfirmedEnrollmentItemResponse from(Enrollment enrollment) {
+		return new ClassConfirmedEnrollmentItemResponse(
+				enrollment.getId(),
+				enrollment.getUserId(),
+				enrollment.getStatus(),
+				enrollment.getConfirmedAt());
+	}
 }

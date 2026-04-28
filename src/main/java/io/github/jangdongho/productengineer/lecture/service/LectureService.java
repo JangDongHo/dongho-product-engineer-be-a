@@ -2,7 +2,6 @@ package io.github.jangdongho.productengineer.lecture.service;
 
 import io.github.jangdongho.productengineer.common.exception.BusinessException;
 import io.github.jangdongho.productengineer.common.exception.ErrorCode;
-import io.github.jangdongho.productengineer.enrollment.domain.Enrollment;
 import io.github.jangdongho.productengineer.enrollment.domain.EnrollmentStatus;
 import io.github.jangdongho.productengineer.enrollment.dto.ClassConfirmedEnrollmentItemResponse;
 import io.github.jangdongho.productengineer.enrollment.repository.EnrollmentRepository;
@@ -35,14 +34,14 @@ public class LectureService {
 		Page<Lecture> lectures = status == null
 				? lectureRepository.findAllByOrderByCreatedAtDesc(pageable)
 				: lectureRepository.findByStatusOrderByCreatedAtDesc(status, pageable);
-		return lectures.map(this::toListItem);
+		return lectures.map(ClassListItemResponse::from);
 	}
 
 	@Transactional(readOnly = true)
 	public ClassDetailResponse getClassById(long id) {
 		Lecture lecture = lectureRepository.findById(id)
 				.orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
-		return toDetail(lecture);
+		return ClassDetailResponse.from(lecture);
 	}
 
 	@Transactional(readOnly = true)
@@ -59,7 +58,7 @@ public class LectureService {
 
 		return enrollmentRepository
 				.findByClassIdAndStatusOrderByCreatedAtDescIdDesc(classId, EnrollmentStatus.CONFIRMED, pageable)
-				.map(this::toClassConfirmedItem);
+				.map(ClassConfirmedEnrollmentItemResponse::from);
 	}
 
 	@Transactional
@@ -102,37 +101,4 @@ public class LectureService {
 				|| (from == ClassStatus.OPEN && to == ClassStatus.CLOSED);
 	}
 
-	private ClassListItemResponse toListItem(Lecture lecture) {
-		return new ClassListItemResponse(
-				lecture.getId(),
-				lecture.getCreatorId(),
-				lecture.getTitle(),
-				lecture.getStatus(),
-				lecture.getPrice(),
-				lecture.getCapacity(),
-				lecture.getStartDate(),
-				lecture.getEndDate());
-	}
-
-	private ClassDetailResponse toDetail(Lecture lecture) {
-		return new ClassDetailResponse(
-				lecture.getId(),
-				lecture.getCreatorId(),
-				lecture.getTitle(),
-				lecture.getDescription(),
-				lecture.getStatus(),
-				lecture.getPrice(),
-				lecture.getCapacity(),
-				lecture.getCurrentEnrollment(),
-				lecture.getStartDate(),
-				lecture.getEndDate());
-	}
-
-	private ClassConfirmedEnrollmentItemResponse toClassConfirmedItem(Enrollment e) {
-		return new ClassConfirmedEnrollmentItemResponse(
-				e.getId(),
-				e.getUserId(),
-				e.getStatus(),
-				e.getConfirmedAt());
-	}
 }

@@ -1,6 +1,7 @@
 package io.github.jangdongho.productengineer.lecture.dto;
 
 import io.github.jangdongho.productengineer.lecture.domain.ClassStatus;
+import io.github.jangdongho.productengineer.lecture.domain.Lecture;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
 
@@ -30,4 +31,15 @@ public record ClassListItemResponse(
 		@Schema(description = "강의 종료 일시", example = "2026-05-30T18:00:00")
 		LocalDateTime endDate
 ) {
+	public static ClassListItemResponse from(Lecture lecture) {
+		return new ClassListItemResponse(
+				lecture.getId(),
+				lecture.getCreatorId(),
+				lecture.getTitle(),
+				lecture.getStatus(),
+				lecture.getPrice(),
+				lecture.getCapacity(),
+				lecture.getStartDate(),
+				lecture.getEndDate());
+	}
 }

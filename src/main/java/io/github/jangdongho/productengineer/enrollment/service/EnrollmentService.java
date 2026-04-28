@@ -56,7 +56,7 @@ public class EnrollmentService {
 					enrollment.getId(),
 					enrollment.getStatus(),
 					enrollment.getConfirmedAt(),
-					toListItem(lecture));
+					ClassListItemResponse.from(lecture));
 		});
 	}
 
@@ -135,17 +135,5 @@ public class EnrollmentService {
 		enrollmentRepository.save(enrollment);
 
 		return new EnrollmentCancelledResponse(enrollment.getId(), enrollment.getStatus());
-	}
-
-	private static ClassListItemResponse toListItem(Lecture lecture) {
-		return new ClassListItemResponse(
-				lecture.getId(),
-				lecture.getCreatorId(),
-				lecture.getTitle(),
-				lecture.getStatus(),
-				lecture.getPrice(),
-				lecture.getCapacity(),
-				lecture.getStartDate(),
-				lecture.getEndDate());
 	}
 }
