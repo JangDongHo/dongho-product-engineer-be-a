@@ -3,6 +3,7 @@ plugins {
 	id 'org.springframework.boot' version '3.5.14'
 	id 'io.spring.dependency-management' version '1.1.7'
 	id 'com.diffplug.spotless' version '6.25.0'
+	id 'checkstyle'
 }
 
 spotless {
@@ -12,6 +13,14 @@ spotless {
 		trimTrailingWhitespace()
 		endWithNewline()
 	}
+}
+
+checkstyle {
+    toolVersion = "10.12.0"
+	configFile = file("config/checkstyle/checkstyle.xml")
+	configProperties = [
+		suppressionsFile: rootProject.file("config/checkstyle/suppressions.xml").absolutePath
+	]
 }
 
 group = 'io.github.jangdongho'

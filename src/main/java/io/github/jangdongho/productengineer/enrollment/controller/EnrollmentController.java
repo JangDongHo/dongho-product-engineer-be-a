@@ -235,7 +235,8 @@ public class EnrollmentController {
   @Operation(
       summary = "수강 취소",
       description =
-          "PENDING은 제한 없이 취소합니다. CONFIRMED는 결제 확정 시각(confirmedAt) 기준 7일 이내에만 취소할 수 있습니다. 성공 시 강의 정원(currentEnrollment)이 1 감소합니다.")
+          "PENDING은 제한 없이 취소합니다. CONFIRMED는 결제 확정 시각(confirmedAt) 기준 7일 이내에만 "
+              + "취소할 수 있습니다. 성공 시 강의 정원(currentEnrollment)이 1 감소합니다.")
   @ApiResponses({
     @io.swagger.v3.oas.annotations.responses.ApiResponse(
         responseCode = "200",

@@ -139,7 +139,7 @@ public class ClassController {
 									    "id": 1,
 									    "creatorId": 10,
 									    "title": "Spring Boot 실전 클래스",
-									    "description": "실무에서 사용하는 Spring Boot API 개발을 다룹니다.",
+									    "description": "Spring Boot 실무 API",
 									    "status": "OPEN",
 									    "price": 10000,
 									    "capacity": 30,
