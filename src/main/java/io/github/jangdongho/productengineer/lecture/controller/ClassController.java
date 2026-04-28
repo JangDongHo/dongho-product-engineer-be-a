@@ -98,11 +98,11 @@ public class ClassController {
 	@GetMapping
 	public ResponseEntity<ApiResponse<List<ClassListItemResponse>>> list(
 			@Parameter(description = "강의 모집 상태 필터", example = "OPEN")
-			@RequestParam(name = "status", required = false) ClassStatus status,
+			@RequestParam(required = false) ClassStatus status,
 			@Parameter(description = "페이지 번호(0~10000)", example = "0")
-			@RequestParam(name = "page", defaultValue = "" + DEFAULT_PAGE) @PositiveOrZero @Max(MAX_PAGE) int page,
+			@RequestParam(defaultValue = "" + DEFAULT_PAGE) @PositiveOrZero @Max(MAX_PAGE) int page,
 			@Parameter(description = "페이지 크기(1~100)", example = "20")
-			@RequestParam(name = "size", defaultValue = "" + DEFAULT_SIZE) @Positive @Max(MAX_SIZE) int size) {
+			@RequestParam(defaultValue = "" + DEFAULT_SIZE) @Positive @Max(MAX_SIZE) int size) {
 		Page<ClassListItemResponse> response = lectureService.listClasses(status, PageRequest.of(page, size));
 		return ResponseEntity.ok(ApiResponse.success(response.getContent(), PageMeta.from(response)));
 	}
