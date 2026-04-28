@@ -5,6 +5,8 @@
 - [과제 A 요구사항](docs/be-a-assignment.md)
 - [사용자 시나리오](docs/user-scenarios.md)
 - [작업 히스토리](docs/epic-story-task.md)
+- [깃허브 이슈](https://github.com/JangDongHo/dongho-product-engineer-be-a/issues?q=sort%3Aupdated-desc%20is%3Aissue%20state%3Aclosed)
+- [깃허브 PR](https://github.com/JangDongHo/dongho-product-engineer-be-a/pulls?q=sort%3Aupdated-desc+is%3Apr+is%3Aclosed)
 
 ## 🔷 프로젝트 기간
 
