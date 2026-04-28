@@ -98,7 +98,7 @@ public class EnrollmentService {
   public EnrollmentConfirmedResponse confirm(long enrollmentId) {
     Enrollment enrollment =
         enrollmentRepository
-            .findById(enrollmentId)
+            .findByIdForUpdate(enrollmentId)
             .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
 
     if (enrollment.getStatus() != EnrollmentStatus.PENDING) {
@@ -117,7 +117,7 @@ public class EnrollmentService {
   public EnrollmentCancelledResponse cancel(long enrollmentId) {
     Enrollment enrollment =
         enrollmentRepository
-            .findById(enrollmentId)
+            .findByIdForUpdate(enrollmentId)
             .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
 
     if (enrollment.getStatus() == EnrollmentStatus.CANCELLED) {
@@ -140,6 +140,9 @@ public class EnrollmentService {
         lectureRepository
             .findByIdForUpdate(enrollment.getClassId())
             .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    if (lecture.getCurrentEnrollment() <= 0) {
+      throw new BusinessException(ErrorCode.CONFLICT, "현재 수강 인원이 유효하지 않습니다.");
+    }
     lecture.setCurrentEnrollment(lecture.getCurrentEnrollment() - 1);
     lectureRepository.save(lecture);
 
