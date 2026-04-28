@@ -1,5 +1,6 @@
 package io.github.jangdongho.productengineer.enrollment.domain;
 
+import io.github.jangdongho.productengineer.common.domain.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -8,8 +9,6 @@ import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
-
-import io.github.jangdongho.productengineer.common.domain.BaseEntity;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -19,27 +18,25 @@ import lombok.Setter;
 @NoArgsConstructor
 @Entity
 @Table(
-		name = "enrollments",
-		uniqueConstraints = @UniqueConstraint(
-				name = "uk_enrollments_user_id_class_id",
-				columnNames = {"user_id", "class_id"}),
-		indexes = @Index(
-				name = "ix_enrollments_user_id_created_at_id",
-				columnList = "user_id,created_at,id"
-		)
-)
+    name = "enrollments",
+    uniqueConstraints =
+        @UniqueConstraint(
+            name = "uk_enrollments_user_id_class_id",
+            columnNames = {"user_id", "class_id"}),
+    indexes =
+        @Index(name = "ix_enrollments_user_id_created_at_id", columnList = "user_id,created_at,id"))
 public class Enrollment extends BaseEntity {
 
-	@Column(name = "user_id", nullable = false)
-	private Long userId;
+  @Column(name = "user_id", nullable = false)
+  private Long userId;
 
-	@Column(name = "class_id", nullable = false)
-	private Long classId;
+  @Column(name = "class_id", nullable = false)
+  private Long classId;
 
-	@Enumerated(EnumType.STRING)
-	@Column(nullable = false, length = 32)
-	private EnrollmentStatus status = EnrollmentStatus.PENDING;
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 32)
+  private EnrollmentStatus status = EnrollmentStatus.PENDING;
 
-	@Column(name = "confirmed_at")
-	private LocalDateTime confirmedAt;
+  @Column(name = "confirmed_at")
+  private LocalDateTime confirmedAt;
 }

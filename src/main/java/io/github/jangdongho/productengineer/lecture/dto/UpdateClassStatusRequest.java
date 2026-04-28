@@ -6,8 +6,9 @@ import jakarta.validation.constraints.NotNull;
 
 @Schema(description = "강의 상태 변경 요청")
 public record UpdateClassStatusRequest(
-		@Schema(description = "변경할 강의 상태", example = "OPEN", requiredMode = Schema.RequiredMode.REQUIRED)
-		@NotNull
-		ClassStatus status
-) {
-}
+    @Schema(
+            description = "변경할 강의 상태",
+            example = "OPEN",
+            requiredMode = Schema.RequiredMode.REQUIRED)
+        @NotNull
+        ClassStatus status) {}

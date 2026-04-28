@@ -11,18 +11,16 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 @OpenAPIDefinition(
-		info = @Info(
-				title = "Product Engineer Class API",
-				version = "v1",
-				description = "강의(클래스) · 수강 신청 API 문서",
-				license = @License(name = "Apache 2.0")
-		)
-)
+    info =
+        @Info(
+            title = "Product Engineer Class API",
+            version = "v1",
+            description = "강의(클래스) · 수강 신청 API 문서",
+            license = @License(name = "Apache 2.0")))
 public class OpenApiConfig {
 
-	@Bean
-	public OpenAPI openAPI() {
-		return new OpenAPI()
-				.servers(List.of(new Server().url("/").description("Default server")));
-	}
+  @Bean
+  public OpenAPI openAPI() {
+    return new OpenAPI().servers(List.of(new Server().url("/").description("Default server")));
+  }
 }
