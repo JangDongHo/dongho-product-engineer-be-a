@@ -1,10 +1,167 @@
 # 과제 A — 수강 신청 시스템
 
-## 🔷 프로젝트 개요
+## 🔷 문서 바로가기
 
-## 🔷 요구사항 해석 및 가정
+- [과제 A 요구사항](docs/be-a-assignment.md)
+- [사용자 시나리오](docs/user-scenarios.md)
+- [작업 히스토리](docs/epic-story-task.md)
+
+## 🔷 프로젝트 기간
+
+`2026.04.24(토) ~ 2026.04.28(화)`
 
 ---
+
+## 🔷 프로젝트 개요
+
+크리에이터가 강의를 열고, 클래스메이트가 원하는 강의에 신청하는 과정을 백엔드 API로 구현한 프로젝트입니다.
+
+강의 등록과 조회 같은 기본 기능은 물론, 정원 제한, 결제 확정, 수강 취소처럼 실제 수강 신청 서비스에서 필요한 흐름을 중심으로 설계했습니다.
+
+이 프로젝트의 목표는 짧은 기간 안에 요구사항을 구현하고, 핵심 비즈니스 규칙이 의도대로 동작하는지 검증하는 것입니다.
+
+특히 다음 세 가지를 집중적으로 검증하려고 했습니다.
+
+1️⃣ 강의와 수강 신청의 상태가 정해진 흐름에 따라 올바르게 전이되는가?
+2️⃣ 강의별 정원이 초과되지 않도록 신청 인원을 정확하게 관리할 수 있는가?
+3️⃣ 동시에 여러 신청이 들어와도 데이터 정합성을 유지할 수 있는가?
+
+---
+
+## 🔷 기술 스택
+
+- Language: Java 21
+- Framework: Spring Boot 3.5.14
+- ORM: Spring Data JPA, Hibernate
+- Database: MySQL 8.0, H2(테스트 전용)
+- Build Tool: Gradle
+- Test: JUnit 5, Spring Boot Test, Mockito
+- Etc: Docker Compose
+
+---
+
+## 🔷 실행 방법
+
+### ✔︎ 어플리케이션 실행
+
+```bash
+./gradlew bootRun
+```
+
+- 애플리케이션은 기본적으로 8080 포트에서 실행됩니다.
+
+### ✔︎ MySQL 실행
+
+```bash
+docker compose up -d mysql
+```
+
+- MySQL 컨테이너는 기본적으로 3306 포트에서 실행됩니다.
+
+### ✔︎ Swagger UI 접속
+
+```bash
+http://localhost:8080/swagger-ui/index.html
+```
+
+- Swagger UI는 기본적으로 8080 포트에서 실행됩니다.
+
+---
+
+## 🔷 테스트 실행
+
+```bash
+./gradlew test
+```
+
+- 테스트 환경에서는 H2 인메모리 DB를 사용하므로 별도의 MySQL 실행 없이 테스트를 실행할 수 있습니다.
+
+---
+
+## 🔷 API 명세
+
+### ✔︎ 강의(Class) API
+
+| Method  | Endpoint                    | 설명                                 | 요청 Body / Query                                                                                     | 응답 코드   |
+| ------- | --------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------- | ----------- |
+| `POST`  | `/classes`                  | 강의 등록                            | `title`, `description`, `price`, `capacity`, `startDate`, `endDate` (`price` 는 KRW **원** 단위 정수) | 201 Created |
+| `PATCH` | `/classes/{id}/status`      | 강의 상태 전이                       | `status` (`DRAFT` \| `OPEN` \| `CLOSED`)                                                              | 200 OK      |
+| `GET`   | `/classes`                  | 강의 목록 조회                       | Query: `status` (선택), `page`, `size`                                                                | 200 OK      |
+| `GET`   | `/classes/{id}`             | 강의 상세 조회                       | —                                                                                                     | 200 OK      |
+| `GET`   | `/classes/{id}/enrollments` | 강의별 수강생 목록 (크리에이터 전용) | Query: `creatorId`, `page`, `size`                                                                    | 200 OK      |
+
+#### 강의 상태 전이 규칙
+
+```mermaid
+stateDiagram-v2
+    direction LR
+
+    [*] --> DRAFT: 강의 등록
+
+    DRAFT --> OPEN: 모집 시작
+    OPEN --> CLOSED: 모집 마감
+
+    DRAFT: DRAFT (초안)
+    OPEN: OPEN (모집 중)
+    CLOSED: CLOSED (모집 마감)
+```
+
+### ✔︎ 수강 신청(Enrollment) API
+
+| Method  | Endpoint                    | 설명                  | 요청 Body / Query               | 응답 코드   |
+| ------- | --------------------------- | --------------------- | ------------------------------- | ----------- |
+| `POST`  | `/enrollments`              | 수강 신청             | `userId`, `classId`             | 201 Created |
+| `PATCH` | `/enrollments/{id}/confirm` | 결제 확정 (수강 확정) | —                               | 200 OK      |
+| `PATCH` | `/enrollments/{id}/cancel`  | 수강 취소             | —                               | 200 OK      |
+| `GET`   | `/enrollments`              | 내 수강 신청 목록     | Query: `userId`, `page`, `size` | 200 OK      |
+
+#### 수강 신청 상태 전이 규칙
+
+```mermaid
+stateDiagram-v2
+		direction LR
+
+    [*] --> PENDING: 수강 신청
+
+    PENDING --> CONFIRMED: 결제 확정
+    PENDING --> CANCELLED: 결제 전 취소
+    CONFIRMED --> CANCELLED: 결제 후 7일 이내 취소
+
+    PENDING: PENDING (결제 대기)
+    CONFIRMED: CONFIRMED (결제 완료)
+    CANCELLED: CANCELLED (취소됨)
+```
+
+### ✔︎ 목록 조회 페이지네이션
+
+- Offset 기반 페이지네이션을 사용합니다.
+- `page`는 0부터 시작하며 기본값은 `0`입니다.
+- `size`는 기본값 `20`, 최댓값 `100`입니다.
+- 페이지네이션이 적용된 목록 API는 응답 루트에서 `data`와 `meta`를 분리해 반환합니다.
+
+### ✔︎ 에러 응답
+
+| HTTP 코드         | 상황                                                           |
+| ----------------- | -------------------------------------------------------------- |
+| `400 Bad Request` | 필수 항목 누락 / 허용되지 않는 상태 전이 / 취소 가능 기간 초과 |
+| `403 Forbidden`   | 본인 강의가 아닌 수강생 목록 조회 시도                         |
+| `404 Not Found`   | 존재하지 않는 강의 또는 신청 ID                                |
+| `409 Conflict`    | 정원 초과 / 동일 강의 중복 신청                                |
+
+---
+
+## 🔷 데이터 모델
+
+<img width="494" height="410" alt="image" src="https://github.com/user-attachments/assets/a7888be9-9607-4957-bcf9-0d22e4e4e448" />
+
+- 각 테이블의 PK는 Auto Increment 방식을 사용했습니다.
+- 수강 신청 테이블의 `lecture_id` 컬럼은 강의 테이블을 참조하는 FK입니다.
+- 같은 수강생이 같은 강의를 중복 신청하지 못하도록 (`lecture_id`, `user_id`) 에 유니크 제약 조건을 두었습니다.
+- 사용자별 신청 내역을 최신순으로 조회할 수 있도록 수강 신청 테이블에 `user_id,created_at,id` 복합 인덱스를 추가했습니다.
+
+---
+
+## 🔷 요구사항 해석 및 가정
 
 ### ✔︎ 요구사항 해석
 
@@ -33,6 +190,8 @@
 #### 결제 규칙
 
 - 수강 취소는 결제 후 7일 이내에만 가능하다.
+
+---
 
 ## 🔷 설계 결정과 이유
 
@@ -72,156 +231,64 @@
 애플리케이션에서는 `existsByUserIdAndClassId`로 중복 여부를 확인하고, DB에는 `(user_id, class_id)` 유니크 제약을 설정하여 동시성 상황에서도 데이터 정합성을 보장하도록 했습니다.  
 이를 통해 불필요한 DB 예외 발생을 줄이면서도 안정성을 확보했습니다.
 
+### ✔︎ 페이지네이션 적용
+
+페이지네이션은 Offset 기반으로 구현했습니다.
+
+페이지 방식과 무한 스크롤 방식 중 어떤 UI 형태를 기준으로 API를 설계해야 할지 고민했습니다.
+과제 명세만으로는 실제 화면이 페이지 이동 방식인지, 무한 스크롤 방식인지 알기 어려웠기 때문입니다.
+라이브클래스의 실제 운영 API에서는 Offset 기반 페이지네이션을 사용하고 있어서, 이번 구현에서도 이를 참고해 Offset 기반으로 구현했습니다.
+
+Offset 방식은 `page`, `size`만으로 구현이 단순하고, 특정 페이지로 이동하기 쉽다는 장점이 있습니다.
+하지만 데이터가 많아질수록 뒤쪽 페이지 조회 성능이 떨어질 수 있기에, 데이터가 많아지면 Cursor 기반 페이지네이션도 고려할 수 있을 것 같습니다.
+
 ### ✔︎ 수강 취소 경계값 테스트
 
 시간 의존 로직을 안정적으로 테스트하기 위해 `LocalDateTime.now()` 대신 Clock을 주입하도록 설계했습니다.  
 이를 통해 시간을 외부에서 제어 가능하게 만들어 결제 후 7일과 같은 경계값을 정확하게 검증할 수 있도록 했습니다.
 
-### ✔︎ 미구현 / 제약사항
+---
 
-- 인증/인가는 별도로 구현하지 않고, 파라미터(혹은 body)에 userId를 전달받아 처리합니다.
+## 🔷 미구현 / 제약사항
+
+- 대기열 기능은 기한 내에 구현하지 못했습니다. 가능하다면 면접 전까지 어떻게 구현하면 좋을지에 대해서 고민하겠습니다.
+- 인증/인가는 별도로 구현하지 않고, 쿼리 파라미터 또는 body에 userId를 전달받아 처리하도록 했습니다.
 - 결제 확정 처리는 외부 결제 시스템 연동 없이 단순 상태 변경으로 대체했습니다.
 
-## 🔷 기술 스택
-
-- Language: Java 21
-- Framework: Spring Boot 3.5.14
-- ORM: JPA
-- Database: MySQL
-- Build Tool: Gradle
-- Test: JUnit 5, Spring Boot Test, H2(테스트 전용 in-memory)
-
-## 🔷 테스트 실행
-
-- **전체 테스트** (프로젝트 루트):
-
-  ```bash
-  ./gradlew test
-  ```
-
-- 테스트는 H2 인메모리 DB를 쓰므로, 별도로 **MySQL을 띄우지 않아도** 테스트를 실행할 수 있습니다.
-
-## 🔷 데이터 모델
-
-<img width="494" height="410" alt="image" src="https://github.com/user-attachments/assets/a7888be9-9607-4957-bcf9-0d22e4e4e448" />
-
-- User는 별도의 테이블로 관리하지 않고, 파라미터로 전달되는 `userId`를 기준으로 처리했습니다.
-- PK는 Auto Increment?
-
-## 🔷 API 명세
-
-### 강의(Class) API
-
-| Method  | Endpoint                    | 설명                                 | 요청 Body / Query                                                                                     | 응답 코드   |
-| ------- | --------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------- | ----------- |
-| `POST`  | `/classes`                  | 강의 등록                            | `title`, `description`, `price`, `capacity`, `startDate`, `endDate` (`price` 는 KRW **원** 단위 정수) | 201 Created |
-| `PATCH` | `/classes/{id}/status`      | 강의 상태 전이                       | `status` (`DRAFT` \| `OPEN` \| `CLOSED`)                                                              | 200 OK      |
-| `GET`   | `/classes`                  | 강의 목록 조회                       | Query: `status` (선택), `page`, `size`                                                                | 200 OK      |
-| `GET`   | `/classes/{id}`             | 강의 상세 조회                       | —                                                                                                     | 200 OK      |
-| `GET`   | `/classes/{id}/enrollments` | 강의별 수강생 목록 (크리에이터 전용) | Query: `creatorId`, `page`, `size`                                                                    | 200 OK      |
-
-#### 목록 조회 페이지네이션
-
-- Offset 기반 페이지네이션을 사용합니다.
-- `page`는 0부터 시작하며 기본값은 `0`입니다.
-- `size`는 기본값 `20`, 최댓값 `100`입니다.
-- 페이지네이션이 적용된 목록 API는 응답 루트에서 `data`와 `meta`를 분리해 반환합니다.
-
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": 1,
-      "creatorId": 10,
-      "title": "Spring Boot 실전 클래스",
-      "status": "OPEN",
-      "price": 10000,
-      "capacity": 30,
-      "startDate": "2026-05-01T10:00:00",
-      "endDate": "2026-05-30T18:00:00"
-    }
-  ],
-  "meta": {
-    "page": 0,
-    "size": 20,
-    "totalElements": 42,
-    "totalPages": 3,
-    "hasNext": true,
-    "hasPrevious": false,
-    "nextPage": 1
-  }
-}
-```
-
-#### 강의 상태 전이 규칙
-
-```mermaid
-stateDiagram-v2
-    direction LR
-
-    [*] --> DRAFT: 강의 등록
-
-    DRAFT --> OPEN: 모집 시작
-    OPEN --> CLOSED: 모집 마감
-
-    DRAFT: DRAFT (초안)
-    OPEN: OPEN (모집 중)
-    CLOSED: CLOSED (모집 마감)
-```
-
-### 수강 신청(Enrollment) API
-
-| Method  | Endpoint                    | 설명                  | 요청 Body / Query               | 응답 코드   |
-| ------- | --------------------------- | --------------------- | ------------------------------- | ----------- |
-| `POST`  | `/enrollments`              | 수강 신청             | `userId`, `classId`             | 201 Created |
-| `PATCH` | `/enrollments/{id}/confirm` | 결제 확정 (수강 확정) | —                               | 200 OK      |
-| `PATCH` | `/enrollments/{id}/cancel`  | 수강 취소             | —                               | 200 OK      |
-| `GET`   | `/enrollments`              | 내 수강 신청 목록     | Query: `userId`, `page`, `size` | 200 OK      |
-
-#### 수강 신청 상태 전이 규칙
-
-```mermaid
-stateDiagram-v2
-		direction LR
-
-    [*] --> PENDING: 수강 신청
-
-    PENDING --> CONFIRMED: 결제 확정
-    PENDING --> CANCELLED: 결제 전 취소
-    CONFIRMED --> CANCELLED: 결제 후 7일 이내 취소
-
-    PENDING: PENDING (결제 대기)
-    CONFIRMED: CONFIRMED (결제 완료)
-    CANCELLED: CANCELLED (취소됨)
-```
-
-### 에러 응답
-
-| HTTP 코드         | 상황                                                           |
-| ----------------- | -------------------------------------------------------------- |
-| `400 Bad Request` | 필수 항목 누락 / 허용되지 않는 상태 전이 / 취소 가능 기간 초과 |
-| `403 Forbidden`   | 본인 강의가 아닌 수강생 목록 조회 시도                         |
-| `404 Not Found`   | 존재하지 않는 강의 또는 신청 ID                                |
-| `409 Conflict`    | 정원 초과 / 동일 강의 중복 신청                                |
-
 ---
 
-## 🔷 AI 활용 범위
+## 🔷 AI 활용 현황
 
----
+### ✅ AI를 적극적으로 활용한 부분
 
-### ✅ AI를 적극적으로 활용한 부분
+- 생소한 개념 비교 학습
+  - 기존에 익숙했던 Node.js와 과제에서 사용한 Java/Spring의 차이를 이해하는 데 활용했습니다.
+  - 예외 처리 방식, 계층 구조, 테스트 작성 방식처럼 처음 접하는 부분을 비교하며 학습했습니다.
 
-- 생소한 개념 비교 학습 (Node.js vs Java)
 - 명세 문서화
-  - 사용자 시나리오 작성
-  - Epic-Story-Task 분해
-- 테스트 코드 작성
-- CodeRabbit을 활용한 코드 리뷰
+  - 요구사항을 바탕으로 사용자 시나리오를 정리할 때 활용했습니다.
+  - 기능을 Epic, Story, Task 단위로 나누어 작업 범위를 정리하는 데 도움을 받았습니다.
+  - 작성된 문서는 과제 요구사항과 맞는지 직접 확인하며 수정했습니다.
 
-### ❌ AI를 덜 활용한 부분
+- 테스트 코드 작성
+  - 정상 케이스와 예외 케이스를 빠뜨리지 않기 위해 테스트 케이스 아이디어를 얻는 데 활용했습니다.
+  - Given-When-Then 구조로 테스트를 정리하는 데 참고했습니다.
+  - 최종 테스트 코드는 실제 구현 내용에 맞게 직접 수정했습니다.
+
+- CodeRabbit을 활용한 코드 리뷰
+  - PR 단위로 리뷰를 받아 놓친 부분이나 개선할 수 있는 부분을 확인했습니다.
+  - 리뷰 내용을 그대로 반영하기보다는 현재 과제 범위에 맞는 내용인지 판단한 뒤 적용했습니다.
+
+### ❌ AI를 덜 활용한 부분
 
 - 요구사항 분석
+  - 어떤 기능이 핵심인지, 예외 상황을 어떻게 처리할지는 직접 판단했습니다.
+  - 특히 수강 신청 가능 조건, 중복 신청, 정원 초과 같은 주요 정책은 요구사항을 기준으로 직접 정리했습니다.
+
 - 데이터 모델 설계
-- AI 작성해준 문서 검토 및 수정
+  - 강의와 수강 신청 테이블 구조, FK 관계, 유니크 제약 조건은 직접 설계했습니다.
+  - AI는 설계 후 설명을 다듬는 용도로만 활용했습니다.
+
+- AI가 작성한 문서 검토 및 수정
+  - AI가 작성한 초안은 그대로 사용하지 않고, 표현이 과하거나 실제 구현과 맞지 않는 부분을 직접 수정했습니다.
+  - 최종 제출 문서는 제가 이해하고 설명할 수 있는 수준으로 다시 정리했습니다.
